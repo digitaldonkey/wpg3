@@ -1,0 +1,32 @@
+=== GWPG3 ===
+Tags: gallery, gallery3, wpg3, wpg2
+Contributors: digitaldonkey
+Requires at least: 3.1
+Tested up to: 3.1
+Stable tag: Trunk
+Donate link: http://donkeymedia.eu/2010/08/26/worpress-multilingual-contactform/
+
+== Description ==
+pre Alpha State development Version of Wordpress Plugin connecting Gallery3 and Wordpress3+ maintaining compatibility to WPG2
+
+== Installation ==
+
+1. Upload to your plugins folder, usually `wp-content/plugins/`
+2. Activate the plugin on the plugin screen.
+3. Configure the plugin on it's settings screen. Settings -> WPG3
+4. Add the `< !--wpg3-->`(without the space at before the exclamation mark!) to the body of the post/page in the editors HTML mode.
+
+
+== Frequently Asked Questions ==
+
+= How do I add the contact form to a get output? =
+
+You need to add the `< !--wpg3-->` (without the space at before the exclamation mark!) to the body of the post/page in the editors HTML mode.
+
+== Screenshots ==
+
+
+== Upgrade Notice ==
+
+= 0.1 =
+Experimantal Stuff related XHTTP in WP
