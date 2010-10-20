@@ -2,7 +2,7 @@
 /*
 Plugin Name: WPG3
 Plugin URI: http://wpg3.digitaldonkey.de
-Description: Sucessor of the WPG2 Plugin Compatible to Gallery3 and WP3+
+Description: Sucessor of the WPG2 Plugin Compatible to Gallery3 and WP3+ @ ALPHA-DEV
 Author URI: http://donkeymedia.eu
 Version: 0.1
 */
@@ -32,10 +32,6 @@ function wpg3_callback( $content , $templateTag=false) {
   }
 }
 
-
-
-
-
 /* Get started :) */
 function wpg3_work(){
 
@@ -48,10 +44,15 @@ function wpg3_work(){
   $wpg3_g3Url = stripslashes(get_option('wpg3_g3Url'));
   
   // Example 1 get all Members of a resource (in a very long-winded way I think)
-  //$html .= wpg3_getAllMembers($wpg3_g3Url);
+  $html .= wpg3_getAllMembers($wpg3_g3Url);
   
   // Example 2 get a random Child 
-  $html .= wpg3_getRandomChild($wpg3_g3Url);
+  //$html .= wpg3_getRandomChild($wpg3_g3Url);
+  
+
+  // Example 3 get ul-list of Elements 
+  //$html .= wpg3_getElementsList($wpg3_g3Url);
+  
   
   echo $html;
   
@@ -60,8 +61,25 @@ function wpg3_work(){
 }
 
 
+/* EXAMPLE get items list */ 
+function wpg3_getElementsList($url){
+  $html = "";
+  
+  // create a querry list for all members
+  $get =  $url.'?scope=all&type=album';
+
+  $result = wpg3_getRequestObject($get);
+  
+  wpg3_debug($result);
+  
+  //$html.= wpg3_makeThumb( $result->entity);
+  
+  return $html;
+}
+
 /* EXAMPLE get random item */ 
 function wpg3_getRandomChild($url){
+  
   $html = "";
   
   // create a querry list for all members
@@ -83,13 +101,13 @@ function wpg3_getAllMembers($url){
   $html = "";
   // get the root Item
   $result = wpg3_getRequestObject($url);
-  
+
   //find all members
   $myMembers = array();
   foreach ($result->members as $url ){
     array_push( $myMembers, $url);
   }
-  
+
   // create a querry list for all members
   $urls = 'http://wpg3.local/gallery3/index.php/rest/items?urls=["'.implode($myMembers, '","').'"]';
     
@@ -101,20 +119,36 @@ function wpg3_getAllMembers($url){
   foreach ($result as $obj){
     $html.= wpg3_makeThumb( $obj->entity);
   }
+
   return $html;
 }
 
+/* Start a session or return it */
+function get_REST($url) {
+  //$start = microtime(true);
+  
+  if (!isset($_SESSION['gallery3_cache'][$url])) {
+  
+  if( !class_exists( 'WP_Http' ) ){
+    require_once( ABSPATH . WPINC. '/class-http.php' );
+  } 
+    $_SESSION['gallery3_cache'][$url] = new WP_Http;
+  }
+  
+  //$sctipttime =  microtime(true) - $start;
+  //echo '<div style="border: 1px dotted green;">get_REST Time: '.$sctipttime." sec.</div>";
+  
+  return $_SESSION['gallery3_cache'][$url];
 
-
+}
 
 /* create a request */
 function wpg3_getRequestObject($url){
-  
-  /* check if the http class exists */
-  if( !class_exists( 'WP_Http' ) ) include_once( ABSPATH . WPINC. '/class-http.php' );
-  
-  $request = new WP_Http;
-  $result = $request->request( $url );
+  $start = microtime(true);
+
+  $xhttp_req = get_REST($url);
+    
+  $result = $xhttp_req->request( $url );
 
   if( is_wp_error( $result ) ){
     echo "Uuups... There is a wp_error thrown while getting $url<br />";
@@ -127,10 +161,16 @@ function wpg3_getRequestObject($url){
     
    //wpg3_debug($result);
    
+  $sctipttime =  microtime(true) - $start;
+  echo '<div style="border: 1px dotted red;">wpg3_getRequestObject Time: '.$sctipttime." sec.</div>";
+
     return $result;
   }
 
 }
+
+
+
 
 /* create a Thumb output*/
 function wpg3_makeThumb($entity){
