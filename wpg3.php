@@ -48,90 +48,54 @@ function wpg3_work(){
 	}
 	
 	// get g3 Data
-	$xml = getItem($url);
-  if (! isset($xml['type'])){ die ( "ERROR @ getItem ($url)"); }
+	$item = getItem($url);
+  if (! isset($item['type'])){ die ( "ERROR @ getItem ($url)"); }
 
 	// where we start (@todo pager missing!)
   if ( isset($_GET['start']) and $_GET['start'] != "") $firstItemOnPage = $_GET['start'];
   
 	/* g3 entity title */
-	$html .= wpg3_view_title( $xml["title"] );
+	$html .= wpg3_view_title( $item["title"] );
 	
 	#############################
 	
 	// ALBUM OR PHOTO OR Movie
-	switch ($xml['type']) {
+	//$item['type'] = "movie";
+	switch ($item['type']) {
 	
 	
 	  /* creating Album Page */
     case "album":
-          echo '<div class="albums">';
+          $html .= '<div class="album">';
           
           $wpg3_settings["lastItemOnPage"] = ($wpg3_settings["firstItemOnPage"] + $wpg3_settings["itemsOnPage"]);
-          if ( isset ($xml['children']) and $wpg3_settings["lastItemOnPage"] > count($xml['children']) ){
-            $wpg3_settings["lastItemOnPage"] = count($xml['children']);
+          if ( isset ($item['children']) and $wpg3_settings["lastItemOnPage"] > count($item['children']) ){
+            $wpg3_settings["lastItemOnPage"] = count($item['children']);
           }
 
           /* get all children */          
           for ($child = $wpg3_settings["firstItemOnPage"]; $child < $wpg3_settings["lastItemOnPage"]; $child++) {
-            $item = getItem($xml['children'][$child]);
-            wpg3_view_itemBlock($item);           
+            $child_item = getItem($item['children'][$child]);
+            $html .= wpg3_view_itemBlock($child_item);           
           }
           
-          echo "</div>";
+          $html .= "</div>";
           break;
     
     /* creating Photo Page */
     case "photo":
-      echo "<div class='gallery-photo'>";
-			echo "<a href='".$xml['full']."'><img src='".$xml['resized']."'/></a>";
-  		echo "</div><br/><br/>";
-      $desc = $xml['description'];
-      if ($desc == "") $desc = "Not provided.";
-      echo "<table class='datatable'>
-            <tr><th colspan=2>Photo Information</th></tr>
-            <tr><td>Description</td><td>".$desc."</td></tr>
-            <tr><td>Date Photographed</td><td>".$xml['date_photo']."</td></tr>
-            <tr><td>Date Updated</td><td>".$xml['date_updated']."</td></tr>
-            <tr><td>Dimensions</td><td>".$xml['real_width']."x".$xml['real_height']."</td></tr>
-            <tr><td>Link to full photo</td><td><a href='".$xml['full']."'>Here</a></td></tr>
-          </table>";
+      $html .= "<div class='photo'>";
+      $html .= wpg3_view_photopage($item);
+      $html .= "</div>"; // end class=photo
       break;
 
     /* crating movie Page  UNTESTED !!!*/
-    case 2:
-      echo '<h5 style="color: red; border-top: 1px dashed red; padding-left: 1em;">'.$xml['type']."</h5>";
-      echo "<div class='gallery-photo'>";
-      $url = str_replace("thumbs","albums",substr($xml['thumbnail'],0,strripos($xml['thumbnail'],"/")+1).$xml['name']);
-			echo "<object id='pla123123sadgasdfsdafasdfasdffdfddfadsf1yer' 
-						classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' 
-						name='pl123123asdfasdfasdfayer' 
-						width='640' height='352'>
-					<param name='movie' value='http://www.otenko.com/gallery2/modules/flashvideo/lib/G2flv.swf'>
-					<param name='allowfullscreen' value='true'>
-					<param name='allowscriptaccess' value='always'>
-					<param name='flashvars' value='type=video&amp;file=".urlencode($url)."'>
-					<embed type='application/x-shockwave-flash' 
-							id='pla1212asdfahlkljklsdfdasfsd3123yer2' 
-							name='ghjghdgplay123asfdasdf124242523er2' 
-							src='http://www.otenko.com/gallery2/modules/flashvideo/lib/G2flv.swf' 
-							width='640' height='352' 
-							allowscriptaccess='always' 
-							allowfullscreen='true' 
-							flashvars='type=video&amp;file=".urlencode($url)."'>
-					</object>";
-		   echo "</div><br/><br/>";
-		   $desc = $xml['description'];
-		    if ($desc == "") $desc = "Not provided.";
-		    echo "<table class='datatable'>
-					<tr><th colspan=2>Photo Information</th></tr>
-					<tr><td>Description</td><td>".$desc."</td></tr>
-					<tr><td>Date Photographed</td><td>".$xml['date_photo']."</td></tr>
-					<tr><td>Date Updated</td><td>".$xml['date_updated']."</td></tr>
-					<tr><td>Dimensions</td><td>".$xml['real_width']."x".$xml['real_height']."</td></tr>
-					<tr><td>Link to full photo</td><td><a href='".$xml['full']."'>Here</a></td></tr>
-				</table>";
-    break;
+    case "movie":
+      $html .=  "<div class='movie'>";     
+      $item['video_url'] = str_replace("thumbs","albums",substr($item['thumbnail'],0,strripos($item['thumbnail'],"/")+1).$item['name']);
+      wpg3_view_videoPage($item);
+      $html .=  "</div>"; // end class=movie;
+     break;
     
     /* We dont know the Entity type */
     default: 
@@ -157,12 +121,18 @@ function wpg3_work(){
  *   Object and XHTTP FUNCTIONS
 **/
 
-// @ toDo: What can I do if Cokies are diaabled?
-/*
-  if ! isset ($_SESSION) and isset ($_GET(SSID) get back my Session data???
+/* 
+   BY NOW we have two different ways of caching the g3-HTTP ( get_REST_xml() ) data.
+   We'll need to check a good, fast way 
 */
 
-// set up XHTTP trough Wordpress WP_Http Class
+/**
+ *  HERE: SESSION BASES CACHE. 
+ *  - Needs reload for every user. 
+ *     With 4 Albums and 16 items it takes about 4 sec to get the main gallery loaded ... :(
+ *  - No "without cockie" implementation yet  @ toDo: What can I do if Cokies are diaabled?
+**/
+/*
 function get_REST_xml($uri) {
  global $wpg3_settings;
  $WP_http_class_cache = $wpg3_settings['g3Url'];
@@ -180,7 +150,50 @@ function get_REST_xml($uri) {
   }
   return $_SESSION['gallery3_cache'][$uri];
 }
+*/
 
+/**
+ *  HERE: caching with transients
+ *  http://codex.wordpress.org/Transients_API
+ *  the when to update is not yet implemented in a good way, 
+ *  because we reflect changes in the root only after expiration time
+ *  so if you have a large gallery and a lot of visits, you only update the subitems.
+ *  Maybe we should give every object its own expire-time too.
+**/
+function get_REST_xml($uri) {
+ global $wpg3_settings;
+ $cache_time = 60*15; // 1h=60*60*1
+ $WP_http_class_cache = $wpg3_settings['g3Url'];
+ $update_cache = false;
+ 
+ //delete_transient($WP_http_class_cache); // --> Unregister Plugin!
+
+ if (false === ( $myCache = get_transient($WP_http_class_cache) ) ) {
+    // It wasn't there, so regenerate the data and save the transient
+    echo "INFO: created new Cache";    
+    if( !class_exists( 'WP_Http' ) ){
+      require_once( ABSPATH . WPINC. '/class-http.php' );
+    } 
+    $request_data['WP_Http'] = new WP_Http;
+    $update_cache = true;
+  }else{
+      $request_data = get_transient($WP_http_class_cache);
+  }
+
+  if (! isset($request_data['item'][$uri])){
+    $this_req = $request_data['WP_Http'] ->request( $uri );
+    $request_data['item'][$uri] = json_decode($this_req['body']);
+    $update_cache = true;
+  }
+  
+  if ($update_cache){
+    set_transient($WP_http_class_cache, $request_data, $cache_time);
+  }
+  
+  return $request_data['item'][$uri];
+}
+
+/* get the object and fetch a item array */
 function getItem($uri) {
   $format = get_option('date_format');
   $jsonObj = get_REST_xml($uri);  
@@ -218,34 +231,89 @@ function getItem($uri) {
  *   View Functions
 **/
 
+/* get item as block (for the Album page) */
 function wpg3_view_itemBlock($item){
   global $wpg3_settings;
-  echo "<div class='block' style='display: inline-block; width: 150px; margin: 3px; background: #efefef; text-align: center; padding-top: 6px;'>";
-            if ($item['type'] == "album"){
-              echo '<a href="'.$wpg3_settings["scriptUrl"].'?itemid='.$item['id'].'"';            
-            }else{             
-              echo "<a href='".$item['full']."' rel='lightbox[photos]' class='lightbox-enabled' title='".$item["title"]."'>";
-            }
-              echo "<img src='".$item["thumbnail"]."'/>";
-              echo "</a>";
-              echo '<h4><a href="'.$wpg3_settings["scriptUrl"].'?itemid='.$item['id'].'">'.$item["title"]."</a></h4>";
-            
-            /* META */
-            echo "<div class='meta'>";
-            if ($item['type'] == "album"){
-              echo count($item['children'])." Items";
-            }
-            if ($item['description'] != ""){
-              echo "<p>".$item['description']."</p>";
-            }
-            echo "</div>"; // END class=meta
-            
-            echo "</div>"; // END class=block	
+  $html = '';
+  $html .= "<div class='block' style='display: inline-block; width: 150px; margin: 3px; background: #efefef; text-align: center; padding-top: 6px;'>";
+  if ($item['type'] == "album"){
+    $html .= '<a href="'.$wpg3_settings["scriptUrl"].'?itemid='.$item['id'].'"';            
+  }else{             
+    $html .= "<a href='".$item['full']."' rel='lightbox[photos]' class='lightbox-enabled' title='".$item["title"]."'>";
+  }
+  $html .= "<img src='".$item["thumbnail"]."'/>";
+  $html .= "</a>";
+  $html .= '<h4><a href="'.$wpg3_settings["scriptUrl"].'?itemid='.$item['id'].'">'.$item["title"]."</a></h4>";
+  /* META */
+  $html .= "<div class='meta'>";
+  if ($item['type'] == "album"){
+    $html .= count($item['children'])." Items";
+  }
+  if ($item['description'] != ""){
+    $html .= "<p>".$item['description']."</p>";
+  }
+  $html .= "</div>"; // END class=meta  
+  $html .= "</div>"; // END class=block	
+  return $html;
 }
 
+/*  create a photo Page */
+function wpg3_view_photopage($item){
+  $html = '';
+  $html .= "<a href='".$item['full']."'><img src='".$item['resized']."'/></a>";
+  $desc = $item['description'];
+  if ($desc == "") $desc = "Not provided.";
+	$html .=  wpg3_view_get_desc($item);
+  return $html;
+}
+
+/* create a video Page */
+function wpg3_view_videoPage($item){
+  $html = '';
+  $html .= "<object id='pla123123sadgasdfsdafasdfasdffdfddfadsf1yer' 
+						classid='clsid:D27CDB6E-AE6D-11cf-96B8-444553540000' 
+						name='pl123123asdfasdfasdfayer' 
+						width='640' height='352'>
+					<param name='movie' value='". plugins_url().'/wpg3/G2flv.swf'."'>
+					<param name='allowfullscreen' value='true'>
+					<param name='allowscriptaccess' value='always'>
+					<param name='flashvars' value='type=video&amp;file=".urlencode($item['video_url'])."'>
+					<embed type='application/x-shockwave-flash' 
+							id='pla1212asdfahlkljklsdfdasfsd3123yer2' 
+							name='ghjghdgplay123asfdasdf124242523er2' 
+							src='". plugins_url().'/wpg3/G2flv.swf'."' 
+							width='640' height='352' 
+							allowscriptaccess='always' 
+							allowfullscreen='true' 
+							flashvars='type=video&amp;file=".urlencode($item['video_url'])."'>
+					</object>";
+	$html .=  wpg3_view_get_desc($item);
+  return $html;
+}			
+
+function wpg3_view_get_desc($item){
+  $html = '';
+  $desc = $item['description'];
+	if ($desc == ""){
+	  $desc = "Not provided.";
+	}
+	$html .=  "<table class='datatable'>
+					<tr><th colspan=2>Photo Information</th></tr>
+					<tr><td>Description</td><td>".$desc."</td></tr>
+					<tr><td>Date Photographed</td><td>".$item['date_photo']."</td></tr>
+					<tr><td>Date Updated</td><td>".$item['date_updated']."</td></tr>
+					<tr><td>Dimensions</td><td>".$item['real_width']."x".$item['real_height']."</td></tr>";
+  if (isset ($item['full'])){
+    $html .= '<tr><td>Link to full photo</td><td><a href="'.$item['full'].'">Here</a></td></tr>';
+  }
+  $html .="</table>";
+  return $html;
+}
+      
 function wpg3_view_title($title="hallo"){
 	return "<h2>".$title."</h2>";	
 }
+
 
 
 /* create a Thumb output*/
