@@ -9,7 +9,7 @@
     add_option('wpg3_g3Url','wpg3.local');
 
     /*check form submission and update options*/
-    if ('process' == $_POST['stage'])
+    if (isset($_POST['stage']) and $_POST['stage'] == 'process')
     {
       update_option('wpg3_g3Url', $_POST['wpg3_g3Url']);
     }

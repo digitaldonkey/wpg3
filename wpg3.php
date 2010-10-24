@@ -21,7 +21,7 @@ session_start();
 /* Get started :) */
 $wpg3_settings;
 
-function wpg3_work(){
+function wpg3_work($g3_item=false){
   global $wpg3_settings;
   //check the time
   $start = microtime(true);
@@ -40,7 +40,11 @@ function wpg3_work(){
 	
 	);
 
-  // g3-home ?
+  // g3-home or do we start on a different Element?
+  if ($g3_item){
+    // so we found a <!--wpg3="$g3_item[2]"-->  
+    $wpg3_settings['g3Home'] = '/rest/'.$g3_item[2];
+  }
   if ( ! isset($_GET['itemid']) ){
 		$url = $wpg3_settings['g3Url'].$wpg3_settings['g3Home'];
 	} else {
@@ -343,13 +347,19 @@ function wpg3_plugin_options() {
 
 /* Set a tag where to put the gallery */
 function wpg3_callback( $content , $templateTag=false) {
-
+  $return = false;
 	/* Run the input check. */		
-	if(false === strpos($content, '<!--wpg3-->') and !$templateTag) {
-		return $content;
+	if(false === strpos($content, '<!--wpg3') and !$templateTag) {
+		$return = $content;
 	}else{
-    return str_replace('<!--wpg3-->', wpg3_work(), $content);
+	  if (strpos($content, '<!--wpg3-->')){
+	    // only the Tag -> Starting at base level
+	    $return =  str_replace('<!--wpg3-->', wpg3_work(), $content);
+	  }else{
+    $return = preg_replace_callback('/(.*)\<!--wpg3="(.*)"--\>(.*)/is', "wpg3_work" , $content );
+	  }
   }
+  return $return;
 }
 
 
