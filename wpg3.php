@@ -4,7 +4,7 @@ Plugin Name: WPG3
 Plugin URI: http://wpg3.digitaldonkey.de
 Description: Sucessor of the WPG2 Plugin Compatible to Gallery3 and WP3+ @ ALPHA-DEV
 Author URI: http://donkeymedia.eu
-Version: 0.2
+Version: 0.3
 */
 
 // Load the Classes before session_start ??
@@ -50,6 +50,7 @@ function wpg3_work($g3_item=false){
 	} else {
 	  $url = $wpg3_settings['g3Url']."/rest/item/" . $_GET['itemid'];
 	}
+	echo $url;
 	
 	// get g3 Data
 	$item = getItem($url);
@@ -202,6 +203,7 @@ function getItem($uri) {
   $format = get_option('date_format');
   $jsonObj = get_REST_xml($uri);  
   if (! is_object($jsonObj )) die ("ERROR @ get_REST_xml($uri)");
+  wpg3_debug($jsonObj);
   $item =  array(
     "thumbnail" => $jsonObj->entity->thumb_url,
     "description" => $jsonObj->entity->description,
@@ -230,7 +232,6 @@ function getItem($uri) {
 }
 
 
-
 /**
  *   View Functions
 **/
@@ -241,11 +242,11 @@ function wpg3_view_itemBlock($item){
   $html = '';
   $html .= "<div class='block' style='display: inline-block; width: 150px; margin: 3px; background: #efefef; text-align: center; padding-top: 6px;'>";
   if ($item['type'] == "album"){
-    $html .= '<a href="'.$wpg3_settings["scriptUrl"].'?itemid='.$item['id'].'"';            
+    $html .= '<a href="'.$wpg3_settings["scriptUrl"].'?itemid='.$item['id'].'">';            
   }else{             
     $html .= "<a href='".$item['full']."' rel='lightbox[photos]' class='lightbox-enabled' title='".$item["title"]."'>";
   }
-  $html .= "<img src='".$item["thumbnail"]."'/>";
+  $html .= "<img src='".$item["thumbnail"]."' />";
   $html .= "</a>";
   $html .= '<h4><a href="'.$wpg3_settings["scriptUrl"].'?itemid='.$item['id'].'">'.$item["title"]."</a></h4>";
   /* META */
@@ -264,7 +265,7 @@ function wpg3_view_itemBlock($item){
 /*  create a photo Page */
 function wpg3_view_photopage($item){
   $html = '';
-  $html .= "<a href='".$item['full']."'><img src='".$item['resized']."'/></a>";
+  $html .= "<a href='".$item['full']."'><img src='".$item['resized']."' /></a>";
   $desc = $item['description'];
   if ($desc == "") $desc = "Not provided.";
 	$html .=  wpg3_view_get_desc($item);
