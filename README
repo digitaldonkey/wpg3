@@ -9,6 +9,8 @@ Donate link: http://donkeymedia.eu/2010/08/26/worpress-multilingual-contactform/
 == Description ==
 pre Alpha State development Version of Wordpress Plugin connecting Gallery3 and Wordpress3+ maintaining compatibility to WPG2
 In this experimental releas we'll integrate a g3 into a custom Post - ceacing experiments.
+- Requires PHP5 (like Gallery3)
+- Requires Gallery3 REST Module to be enabled and (for now) the REST Option allow_guest_access enabled.
 
 == Installation ==
 
