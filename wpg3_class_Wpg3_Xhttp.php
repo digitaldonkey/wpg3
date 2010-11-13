@@ -243,7 +243,7 @@ class WPG3_Xhttp{
 **/
   public function admin_options_section_display_g3Home()
   { $field_id = 'g3Home';
-    $options = get_option('wpg3_options'); // we should use data of $this !!
+    $options = $this->wpg3_options; // we should use data of $this !!
     $val = isset($options[$field_id])?$options[$field_id]:'/rest/item/1';
     echo '<p>Default g3 Album/Item to display. e.g. <strong>/rest/item/1</strong></p>';
     echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="60" type="text" value="'.$val.'" />'."\n";  
@@ -276,7 +276,7 @@ class WPG3_Xhttp{
 **/
   public function admin_options_section_display_cacheTime()
   { $field_id = 'cacheTime';
-    $options = get_option('wpg3_options'); // we should use data of $this !!
+    $options = $this->wpg3_options; // we should use data of $this !!
     $val = isset($options[$field_id])?$options[$field_id]:900;
     echo '<p>Time to cache Gallery Items in Seconds e.g. 15 minutes = 60*15 => <strong>900</strong></p>';
     echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="60" type="text" value="'.$val.'" />'."\n";  
