@@ -70,6 +70,10 @@ class WPG3_Template{
  public function use_template($template_id, $data ){
     $myTemplate = false;
     $html = '';
+        
+    if ( !is_array($this->templates) ){
+      wp_die('Templates undefined @use_template()');
+    }
     foreach($this->templates as $key => $val){
       if($val['id'] === $template_id){
         $myTemplate = $val;
@@ -175,15 +179,16 @@ private function getAllFiles($directory, $recursive = true) {
 **/
     private function get_templates_array(){ 
       $return = false;
-      //int timestamp
-      $lastChange = $this->getHighestFileTimestamp($this->wpg3_options['templateDirectory']);
-      $stored_lastChange = get_transient('templateChanged');
-      
-      if ( $stored_lastChange ){
-        set_transient('templateChanged', $lastChange, $this->cacheTime);
-      }
-      if ($lastChange > $stored_lastChange){
-      $return = $this->update_templates();
+      // check for updates in tpl dir
+      if (trim ($this->wpg3_options['templateDirectory']) ){
+        // not yet set up?
+        if ( ! isset( $tpl_stored_lastchange )) $this->wpg3_options['template_change'] = 0;
+        $tpl_stored_lastchange = $this->wpg3_options['template_change'];
+        $tpl_latest_change = $this->getHighestFileTimestamp($this->wpg3_options['templateDirectory']);
+        if ( $tpl_stored_lastchange < $tpl_latest_change ){
+          $return = $this->update_templates();
+          $this->wpg3_options['template_change'] = $tpl_latest_change;
+        }
       }
       return $return;
     }
@@ -205,9 +210,12 @@ private function getAllFiles($directory, $recursive = true) {
        wp_die("Please create a Templet Direcoty: $this->wpg3_options['templateDirectory']<br />or chmod 777 the parent folder.");
       }
     }
-    
-    $template_files = $this->getAllFiles($this->wpg3_options['templateDirectory']);
-    
+    $template_files  = $this->getAllFiles( plugin_dir_path(__FILE__).'default_template/');
+    if ( trim ( $this->wpg3_options['templateDirectory'] )  ){
+      foreach ($this->getAllFiles($this->wpg3_options['templateDirectory']) as $template){
+              array_push($template_files, $template );
+      }
+    }
     foreach ($template_files as $file){
       $file = pathinfo($file);
       $file['abspath'] = $file['dirname'] . '/' . $file['basename'];
@@ -294,7 +302,7 @@ private function getAllFiles($directory, $recursive = true) {
 **/
   public function admin_options_section_display_templateDirectory()
   { $field_id = 'templateDirectory';
-    $options = get_option('wpg3_options'); // we should use data of $this !!
+    $options = $this->wpg3_options; // we should use data of $this !!
     $val = isset($options[$field_id])?$options[$field_id]: '';
     echo '<p>Absolute path to template directory. Leave empty to disable.<br />e.g. <strong>'.ABSPATH.'wp-content/wpg3-templates/</strong></p>';
     echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="60" type="text" value="'.$val.'" />'."\n";  

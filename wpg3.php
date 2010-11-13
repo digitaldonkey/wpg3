@@ -286,7 +286,7 @@ public function wpg3_content($g3_item=false)
  **/
   public function admin_validate_options($input)
   { 
-    $wpg3_options = get_option('wpg3_options');
+    $wpg3_options = $this->wpg3_options;
     
     $validatable = array_intersect_key( $this->validate_fields,  $input);
 
@@ -353,7 +353,7 @@ public function wpg3_content($g3_item=false)
 **/
   public function admin_options_section_display_g3Url()
   { $field_id = 'g3Url';
-    $options = get_option('wpg3_options'); // we should use data of $this !! ?>
+    $options = $this->wpg3_options; // we should use data of $this !! ?>
     <p>The Url of you Gallery3 installation 
        e.g. <strong>http://wpg3.local/gallery3/index.php</strong>
     </p>
