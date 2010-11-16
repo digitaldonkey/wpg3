@@ -17,19 +17,21 @@ In this experimental releas we'll integrate a g3 into a custom Post - ceacing ex
 1. Upload to your plugins folder, usually `wp-content/plugins/`
 2. Activate the plugin on the plugin screen.
 3. Configure the plugin on it's settings screen. Settings -> WPG3
-4. Add the `< !--wpg3-->`(without the space at before the exclamation mark!) to the body of the post/page in the editors HTML mode.
+4. Add the '<wpg3></wpg3>' to the body of the post/page in the editors HTML mode to get a full gallery.
 
 
 == Frequently Asked Questions ==
 
-= How do I add the contact form to a get output? =
+= How do I get my G3 Homepage =
 
-You need to add the `< !--wpg3-->` (without the space at before the exclamation mark!) to the body of the post/page in the editors HTML mode.
+Make sure you entered /rest/item/1 at "Default Gallery Album" in Options Page.
+Add <wpg3></wpg3> to the body of the post/page in the editors HTML mode.
 
 == Screenshots ==
-
-
+not yet
+== Changelog ==
+not yet
 == Upgrade Notice ==
 
-= 0.1 =
-Experimantal Stuff related XHTTP in WP
+= 0.7 =
+Template System - enables Templating

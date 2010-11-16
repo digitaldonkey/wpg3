@@ -1,0 +1,4 @@
+/* wpg3_default.css */
+.entry-content:before{
+  content: 'Using WPG3 Template Style  wpg3_default.css';
+}

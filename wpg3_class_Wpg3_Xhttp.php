@@ -37,10 +37,10 @@ class WPG3_Xhttp{
     if (! is_array($wpg3_options)){
       wp_die('g3 Settings missing@WPG3_Xhttp --> __construct');
     }
-    $this->wpg3_settings = $wpg3_options;
+    $this->wpg3_options = $wpg3_options;
     
     /* check the cache */
-    if (false === ( $this->cache = get_transient($this->wpg3_settings['g3Url']) ) ) {
+    if (false === ( $this->cache = get_transient($this->wpg3_options['g3Url']) ) ) {
         // It wasn't there, so regenerate the data and save the transient
         if( !class_exists( 'WP_Http' ) ){
           require_once( ABSPATH . WPINC. '/class-http.php' );
@@ -48,10 +48,8 @@ class WPG3_Xhttp{
         $this->cache['WP_Http'] = new WP_Http;
         $this->update_cache = true;
       }else{
-          $this->cache = get_transient($this->wpg3_settings['g3Url']);
+          $this->cache = get_transient($this->wpg3_options['g3Url']);
       }
-    //wpg3_debug($this->cache);
-
   }
   
   
@@ -73,26 +71,41 @@ class WPG3_Xhttp{
  *
  *  @todo get Items by slug?
  *  @todo paged?? Where to do?
- *  @param object [item(s)]
+ *  @param array [item-tag-array]
  *  @return object item(s) with children if there are --> getItemWithChildren()
- *   @package WPG3
  *
 **/  
   public function get_item( $item = false ){
-    /* by default we pass g3Home */
-    if (! $item ){
-      $item = $this->wpg3_settings['g3Url'].$this->wpg3_settings['g3Home'];
+    $return = false;
+    // fallback: if we got a bad request
+    if (! is_array( $item) ){
+      echo "Something went wrong. I'll go 'home'";
+      $item = $this->wpg3_options['g3Url'].$this->wpg3_options['g3Home'];
     }
+    
+    /**
+     *  DEF: $item Array
+     *   
+     *   'id' => false,
+     *   'rest_uri' => $this->wpg3_options['g3Url'].$this->wpg3_options['g3Home'],
+     *    'width' => false,
+     *    'template' => false 
+     *  
+    **/
+    
+    if( isset($item['id']) and trim ($item['id'])){
+        // unset others??
+        $return = $this->getItemWithChildren( $this->wpg3_options['g3Url'].'/rest/item/'.$item['id']);
+    }
+    if( isset($item['rest_uri']) ){
+      $count = strlen($this->wpg3_options['g3Url'].'/rest/item/');
+      if ( substr($item['rest_uri'], 0, $count) === $this->wpg3_options['g3Url'].'/rest/item/' ){
+        $return = $this->getItemWithChildren($item['rest_uri']);
+      }
+    }
+        
     
     /* is it a slug or REST url */
-    $count = strlen($this->wpg3_settings['g3Url'].'/rest/item/');
-    if ( substr($item, 0, $count) === $this->wpg3_settings['g3Url'].'/rest/item/' ){
-
-      //echo "REST url detected";
-      
-      return $this->getItemWithChildren($item);
-    
-    }
     
     /*
     else{
@@ -108,7 +121,7 @@ class WPG3_Xhttp{
       $path =  explode ("/", $item); 
     }
     */
-    //echo $item;
+    return $return;
   }
   
 /**
@@ -119,9 +132,7 @@ class WPG3_Xhttp{
  **/
   private function getItemWithChildren($uri){
     $start = microtime(true);
-
     $return = clone $this->getObject($uri);
-    //wpg3_debug($return);
 
     // children?
     if ( ! empty($return->members) ){
@@ -136,8 +147,6 @@ class WPG3_Xhttp{
       wp_die("ERROR @getItemWithChildren");
     }
     $this->update_cache(); //just in case we loaded some new XML
-    //echo "<h2>Cache after update_cache: </h2>";
-    //wpg3_debug ( $this->cache);
     
     $sctipttime =  microtime(true) - $start;
     // echo '<div style="border: 1px dotted red;">getItemWithChildren Execution Time: '.$sctipttime." sec.</div>";
@@ -171,7 +180,7 @@ class WPG3_Xhttp{
       }      
     }
     if(!empty($load_items)){
-      $uri = $this->wpg3_settings['g3Url'].'/rest/items?urls=["'.implode( '","' , $load_items ).'"]';
+      $uri = $this->wpg3_options['g3Url'].'/rest/items?urls=["'.implode( '","' , $load_items ).'"]';
       //echo "<br />getMultipleObjects URI : ".$uri."<br />";
       $this_req = $this->cache['WP_Http']->request( $uri );
       $items = json_decode($this_req['body']);
@@ -243,7 +252,7 @@ class WPG3_Xhttp{
 **/
   public function admin_options_section_display_g3Home()
   { $field_id = 'g3Home';
-    $options = $this->wpg3_options; // we should use data of $this !!
+    $options = $this->wpg3_options; 
     $val = isset($options[$field_id])?$options[$field_id]:'/rest/item/1';
     echo '<p>Default g3 Album/Item to display. e.g. <strong>/rest/item/1</strong></p>';
     echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="60" type="text" value="'.$val.'" />'."\n";  
@@ -276,7 +285,7 @@ class WPG3_Xhttp{
 **/
   public function admin_options_section_display_cacheTime()
   { $field_id = 'cacheTime';
-    $options = $this->wpg3_options; // we should use data of $this !!
+    $options = $this->wpg3_options; 
     $val = isset($options[$field_id])?$options[$field_id]:900;
     echo '<p>Time to cache Gallery Items in Seconds e.g. 15 minutes = 60*15 => <strong>900</strong></p>';
     echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="60" type="text" value="'.$val.'" />'."\n";  
@@ -317,7 +326,7 @@ class WPG3_Xhttp{
   private function getParents($item){
     $urls = array();
     do {
-      $url = $this->wpg3_settings['scriptUrl']; 
+      $url = $this->wpg3_options['scriptUrl']; 
       if (! $item->entity->id == 0){
         $url .= "?itemid=".$item->entity->id;
       }
@@ -336,16 +345,16 @@ class WPG3_Xhttp{
  **/
   public function printSettings(){
     echo "<pre>";
-    print_r($this->wpg3_settings);
+    print_r($this->wpg3_options);
     echo "</pre>";
   }
   /* update cache if necessary */
   private function update_cache(){
     if ($this->update_cache){
       set_transient(
-              $this->wpg3_settings['g3Url'],
+              $this->wpg3_options['g3Url'],
               $this->cache,
-              $this->wpg3_settings['cacheTime']
+              $this->wpg3_options['cacheTime']
               );
       $this->update_cache = false;
     }
@@ -356,7 +365,7 @@ class WPG3_Xhttp{
  *   @package WPG3
 **/
   public function clear_cache(){
-    delete_transient($this->wpg3_settings['g3Url']); // --> Unregister Plugin!
+    delete_transient($this->wpg3_options['g3Url']); // --> Unregister Plugin!
   }
   
 }
