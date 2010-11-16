@@ -241,16 +241,6 @@ public function wpg3_content($g3_tag=false)
 
       $template = $this->get_module_instance('WPG3_Template');
       array_push($modules, $template->get_module() );
-      
-      $gallery = $this->get_module_instance('WPG3_Gallery');
-      //$gallery->init_wp_post_types();
-      array_push($modules, $gallery->get_module() );
-
-      /*
-      echo "<pre>\n";
-      print_r ( $this->wpg3_options );
-      echo "</pre>";
-      */
     }
     
     register_setting(
@@ -456,14 +446,6 @@ public function wpg3_content($g3_tag=false)
 	add_action('admin_init', array(&$wpg3, 'wpg3_admin_init') );
   add_action('admin_menu', array(&$wpg3, 'admin_add_page') );
   if($wpg3->is_enabled){
-    add_filter('the_content', array(&$wpg3, 'wpg3_content_callback') );
-    
-   if($wpg3->is_enabled('g3GalleryEnabled')){
-   /*
-     $gallery = $wpg3->get_module_instance('WPG3_Gallery');
-     add_filter('init', array(&$gallery, 'init_post_types') );
-     add_filter('parse_query',  array(&$gallery, 'parse_query_callback'));
-    */
-   } 
+    add_filter('the_content', array(&$wpg3, 'wpg3_content_callback') ); 
  }
 ?>

@@ -103,24 +103,7 @@ class WPG3_Xhttp{
         $return = $this->getItemWithChildren($item['rest_uri']);
       }
     }
-        
-    
-    /* is it a slug or REST url */
-    
-    /*
-    else{
-    
-      echo "SLUG path detected";
-     // this should be a slug-path
-     // remove leading and trailing Slash
-      if(substr($item, 0,1) === "/" ){
-        $item = substr($item, 1);
-      }
-      $item = untrailingslashit($item);
-      // path ARRAY
-      $path =  explode ("/", $item); 
-    }
-    */
+ 
     return $return;
   }
   
