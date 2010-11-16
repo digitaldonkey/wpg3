@@ -87,6 +87,8 @@ class WPG3_Template{
     if ( !$obj = eval("return new ".$myTemplate['class']."();") ){
       wp_die("Couldn't load Class @ WPG3_Template->use_template<br />Template ID: $template_id<br />SEE: &lt;file&gt;_&lt;Method&gt;"); 
     }
+    // add Styles
+    // we have to add the Scripts and CSS more early --> register_script_and_css ... that's bad :(
     $html .= $obj->{$myTemplate['method']}($data);
 
     if (empty($html)){
@@ -123,7 +125,9 @@ class WPG3_Template{
   *   @package WPG3
  **/
   public function debug_templates(){
-    return "<pre>".print_r( $this->wpg3_options->templateDirectory, true )."</pre>";
+    $return  = '<div style="border: 1px dotted red;"><h3>Template Information</h3><p>Template Directory: <strong>'.print_r( $this->wpg3_options['templateDirectory'], true )."</strong></p>";
+    $return .=  "<pre>".print_r( $this->templates, true )."</pre></div>";
+    return $return;
   }
 
  /**
@@ -141,7 +145,7 @@ private function getAllFiles($directory, $recursive = true) {
      $result = array();
      $handle =  opendir($directory);
      while ($datei = readdir($handle)) {
-      if (substr($datei, 0,1) != ".") {
+      if (substr($datei, 0,1) != "." and substr($datei, -3) == "php") {
         $file = $directory.$datei;
           if (is_dir($file)) {
             if ($recursive) { 
@@ -179,20 +183,58 @@ private function getAllFiles($directory, $recursive = true) {
 **/
     private function get_templates_array(){ 
       $return = false;
+      $update = false;
       // check for updates in tpl dir
-      if (trim ($this->wpg3_options['templateDirectory']) ){
+      if (isset( $this->wpg3_options['templateDirectory'] ) and trim ($this->wpg3_options['templateDirectory']) ){
         // not yet set up?
         if ( ! isset( $tpl_stored_lastchange )) $this->wpg3_options['template_change'] = 0;
         $tpl_stored_lastchange = $this->wpg3_options['template_change'];
         $tpl_latest_change = $this->getHighestFileTimestamp($this->wpg3_options['templateDirectory']);
         if ( $tpl_stored_lastchange < $tpl_latest_change ){
-          $return = $this->update_templates();
-          $this->wpg3_options['template_change'] = $tpl_latest_change;
+           $update = true;
+           $this->wpg3_options['template_change'] = $tpl_latest_change;
         }
+      }else{
+        // let's update to get the default Template
+        $update = true;
+      }
+      if ($update){
+      $return = $this->update_templates();  
       }
       return $return;
     }
-  
+
+/**
+ *  Enque Scripts and CSS via wp_enqueue_script for later use of wp_register_script
+ * 
+ *  @global $wp_styles $wp_scripts
+**/
+  public function register_script_and_css(){
+    global $wp_styles, $wp_scripts;
+    foreach ($this->templates as $template){
+      // enque scripts
+      if (isset($template['script']) ){
+        $script = array();
+        array_push( $script,  array(substr (substr(strrchr($template['script'], '/'),  1) , 0,  -3).'_js', $template['script']) );
+        $script = array_unique($script);
+        foreach ($script as $script_data){
+          wp_register_script($script_data[0], $script_data[1]);
+          wp_enqueue_script( $script_data[0] );      
+        }        
+      }
+      // enque css
+      if (isset($template['css']) ){
+        $css = array();
+        array_push( $css,  array(substr (substr(strrchr($template['css'], '/'),  1) , 0,  -4).'_css', $template['css']) );
+        $css = array_unique($css); 
+        foreach ($css as $css_data){
+          wp_register_style($css_data[0], $css_data[1]);
+          wp_enqueue_style( $css_data[0] );
+        }
+      }
+    }
+  }
+
 /**
  *  Reads all Template files and add template Objects to the database
  *  @todo changeable Template Directory
@@ -216,11 +258,11 @@ private function getAllFiles($directory, $recursive = true) {
               array_push($template_files, $template );
       }
     }
+    
     foreach ($template_files as $file){
       $file = pathinfo($file);
       $file['abspath'] = $file['dirname'] . '/' . $file['basename'];
       if ( is_file( $file['abspath'] ) and is_readable( $file['abspath'] ) ){
-        //echo  'File: '.$file."<br />";
         require_once( $file['abspath'] );
         /* init template class of each file found */
         if ($obj = eval("return new ".$file['filename']."();")){
@@ -228,16 +270,16 @@ private function getAllFiles($directory, $recursive = true) {
           foreach($template_array as $key => $val){
             $val['file'] = $file['abspath'];
             $val['class'] = $file['filename'];
-            $val['id'] = $file['filename'].'_'.$val['method'];
+            $val['id'] = $file['filename'].'_'.$val['method'];            
             if( is_callable( array($obj, $val['method']) ) ){
               array_push($templates, $val);
-              /* @todo: we should add some errors when we fail with this */
+            }else{
+              wp_die("Can't call Method: <strong>".$val['method']."</strong><br /> at file: <strong>".$val['file']."</strong><br /> @update_templates");
             }
           }
         }
       }
     }
-   /* safe all to the database */
     return  $templates;
   }
     
@@ -302,7 +344,7 @@ private function getAllFiles($directory, $recursive = true) {
 **/
   public function admin_options_section_display_templateDirectory()
   { $field_id = 'templateDirectory';
-    $options = $this->wpg3_options; // we should use data of $this !!
+    $options = $this->wpg3_options; 
     $val = isset($options[$field_id])?$options[$field_id]: '';
     echo '<p>Absolute path to template directory. Leave empty to disable.<br />e.g. <strong>'.ABSPATH.'wp-content/wpg3-templates/</strong></p>';
     echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="60" type="text" value="'.$val.'" />'."\n";  

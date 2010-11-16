@@ -47,7 +47,12 @@ class Wpg3_Main
 { 
   public $is_enabled = false;
   private $wpg3_options;
-  private $debug = true;
+  /**
+    *  Storing module instances
+    *  use: get_module($classname);
+   **/
+  private $modules;
+  private $debug = false;
   /**
    *   Load wpg3_options 
    *  
@@ -70,7 +75,7 @@ class Wpg3_Main
  *  @todo DEFINE PARAM??? --> CONTENT FILTER REGEXP
  *  @param [array] Optional array Item (
 **/
-public function wpg3_content($g3_item=false)
+public function wpg3_content($g3_tag=false)
 { 
     if($this->debug) $start = microtime(true);
 
@@ -88,46 +93,63 @@ public function wpg3_content($g3_item=false)
   *  Default is the Value chosen on the WPG3-Options Page
   *  Here we handle which REST-Item-Url we will use.
   *  e.g. $_GET['itemid'], <WPG3>-Tags, Permalinks ...
-  *  @todo <WPG3>-Tags, Permalinks
+  *  @todo Permalinks
  **/
-  $url = $this->wpg3_options['g3Url'].$this->wpg3_options['g3Home'];
-    
- // g3-home or do we start on a different Element?
-  if ( is_array($g3_item) ){
-    echo '<div style="padding: 5px;border: 1px dotted red;"><strong>The content Filter returned :</strong>';
-    echo "<pre>\n";
-    print_r ( $g3_item );
-    echo "</pre>";
-    echo "But we'll ignore it for now</div>";
-    //@todo we go a valid parameter $g3_item so we should do the right thing with it!
-    //$url = $this->wpg3_options['g3Url']."/rest/" .$g3_item[2];
-  }
-  if ( isset($_GET['itemid']) ){
-    $url = $this->wpg3_options['g3Url']."/rest/item/".$_GET['itemid'];
-  }
+ // that's what we'll pass to get_item()
+  $get_item = array('id' => false,
+                    'rest_uri' => $this->wpg3_options['g3Url'].$this->wpg3_options['g3Home'],
+                    'width' => false,
+                    'template' => false );
+                    
+  /**
+   *  There was a <WPGX>-Tag
+   *  
+   *  @internal
+   *  We might have here : 
+   *  $g3_tag[0] => all of the following merged
+   *  $g3_tag[1] => int.id|str.rel.path|str.REST.path
+   *  $g3_tag[2] => int.width|str.width
+   *  $g3_tag[3] => str.template.id
+  **/
+
   // Debug REST $url
-  if ($this->debug) echo '<p style="padding: 5px;border: 1px dotted red;">REST request uri: <strong>'.$url.'</strong></p>';
+  if ( is_array($g3_tag) ){
+    if ($this->debug){
+      echo '<div style="padding: 5px;border: 1px dotted red;"><strong>&lt;WPGX&gt;'.$g3_tag[0].'&lt;/WPGX&gt;</strong>';
+      echo '<pre style="font-size: 12px;">'."\n";
+      echo '<wpg3> [int.id|str.rel.path|str.REST.path] [ | [int.width|str.width] ] [ | [str.template]</wpg3>';
+      echo "</pre>";
+      echo "</div>";
+    }
+  }
+ /**
+  * $_GET Requests
+  *
+ **/
+  if ( isset($_GET['itemid']) and is_int( intval($_GET['itemid'])) ){
+    $get_item = array( 'id' => $_GET['itemid'] );
+  }
+  
+  // Debug REST $url
+  if ($this->debug) echo '<pre style="padding: 5px;border: 1px dotted red;"><strong>REST request array:</strong><br />'.print_r( $get_item ,true).'</pre>';
 	
 	// Getting Items
-	$this->__autoload('WPG3_Xhttp');
-	$xhttp=new Wpg3_Xhttp($this->wpg3_options);
+	$xhttp = $this->get_module_instance('WPG3_Xhttp');
   //$xhttp->printSettings();
   //$xhttp->clear_cache();
 
-	$items = $xhttp->get_item( $url );
+	$items = $xhttp->get_item( $get_item );
 
-	$this->__autoload('WPG3_Template');
-  $templates=new WPG3_Template($this->wpg3_options);
+  $templates = $this->get_module_instance('WPG3_Template');
   //echo $templates->debug_templates();
   
   if ( $items->entity->type == "album" ){
-    echo ($templates->use_template('template2_album_template_01', $items));
+    echo ($templates->use_template('defaultTemplate_default_album', $items));
   }
   if ( $items->entity->type == "photo" ){
-    echo ($templates->use_template('template2_photo_template_01', $items));
+    echo ($templates->use_template('defaultTemplate_default_photo', $items));
   }	
 	
-
   if($this->debug) echo '<div style="border: 1px dotted red;">WPG3 main script time: '.round( (microtime(true) - $start) , 4)." sec.</div>";
 }
 
@@ -171,16 +193,15 @@ public function wpg3_content($g3_item=false)
     if(false === strpos($content, '<wpg') and !$templateTag) {
       $return = $content;
     }else{
-      if (strpos($content, '<wpg3>') or strpos($content, '<wpg2>')){
-        // actually this is not necessary
-  
-      //G2 g2_imagebypathinpost:  
-      //  preg_replace("/<wpg2>(.*?)<\/wpg2>/ei", "g2_tagimageblock('\\1')", $text);
+      $return = preg_replace_callback('/<wpg[23]>([^\|]*)[\|]?([^\|]*)[\|]?(.*)<\/wpg[23]>/i', array( $this, 'wpg3_content' ), $content );
       
-      // old:$return = preg_replace_callback('/(.*)\<!--wpg3="(.*)"--\>(.*)/is', "wpg3_work" , $content );
-      $return = preg_replace_callback("/<wpg[23]>(.*?)[|(.*?)]?<\/wpg[23]>/i", array( $this, 'wpg3_content' ), $content );
-      }
-    }
+      /*
+      echo "<pre>\n";
+      if (! is_array($return)) echo 'NO ARRAY';
+      print_r ( $return );
+      echo "</pre>";
+      */
+   }
     return $return;
   }
 
@@ -192,24 +213,39 @@ public function wpg3_content($g3_item=false)
   }
 
   /**
+   *   Redirection init Scripts
+   *
+  **/
+  public function wpg3_init(){
+    if ($this->is_enabled){
+      $template = $this->get_module_instance('WPG3_Template');
+      $template->register_script_and_css();
+    }
+  }
+
+
+  /**
    *   Options Page and Input Validation for WPG3-Modules 
    *
    *   Depends on WP-Settings Api
   **/
-  public function adminInit()
+  public function wpg3_admin_init()
   {
-  
+    
     // MODULES register their options here
     $modules = array($this->get_module() );
     if($this->is_enabled){
 
-      $this->__autoload('WPG3_Xhttp');
-      $xhttp = new WPG3_Xhttp($this->wpg3_options);
+      $xhttp = $this->get_module_instance('WPG3_Xhttp');
       array_push($modules, $xhttp->get_module() );
 
-      $this->__autoload('WPG3_Template');
-      $template = new WPG3_Template($this->wpg3_options);      
+      $template = $this->get_module_instance('WPG3_Template');
       array_push($modules, $template->get_module() );
+      
+      $gallery = $this->get_module_instance('WPG3_Gallery');
+      //$gallery->init_wp_post_types();
+      array_push($modules, $gallery->get_module() );
+
       /*
       echo "<pre>\n";
       print_r ( $this->wpg3_options );
@@ -245,7 +281,25 @@ public function wpg3_content($g3_item=false)
       }
     }  
   }
-  
+
+/**
+  *   get a module instance, load if required
+  *   @param string Classname
+  *   @return object instance
+ **/ 
+  public function get_module_instance($module){
+    $return = false;
+    if (isset($this->modules[$module]) ){
+      $return = $this->modules[$module];
+    }else{
+      $this->__autoload( $module );
+      $instance = new $module( $this->wpg3_options );
+      $this->modules[$module] = $instance;
+      $return = $instance;
+    }
+   return $return;
+  }
+
 /**
   *   Create Options Page for WPG3
   *   @internal
@@ -385,15 +439,31 @@ public function wpg3_content($g3_item=false)
   }
 	
 	private function __autoload($class_name) {
-    include 'wpg3_class_'.$class_name . '.php';
+    include 'wpg3_class_'.$class_name . '.php';    
   }
-	
+	public function get_options() {
+    return $this->wpg3_options;
+  }
+  public function is_enabled($type){
+    $return = false;
+    if ($this->wpg3_options[$type] == "enabled") $return = true;
+    return $return;
+  }
+
 }// END class Wpg3_Main
 
-	add_action('admin_init', array(&$wpg3, 'adminInit') );
+	add_action('init', array(&$wpg3, 'wpg3_init') );
+	add_action('admin_init', array(&$wpg3, 'wpg3_admin_init') );
   add_action('admin_menu', array(&$wpg3, 'admin_add_page') );
   if($wpg3->is_enabled){
     add_filter('the_content', array(&$wpg3, 'wpg3_content_callback') );
-  }
- 
+    
+   if($wpg3->is_enabled('g3GalleryEnabled')){
+   /*
+     $gallery = $wpg3->get_module_instance('WPG3_Gallery');
+     add_filter('init', array(&$gallery, 'init_post_types') );
+     add_filter('parse_query',  array(&$gallery, 'parse_query_callback'));
+    */
+   } 
+ }
 ?>
