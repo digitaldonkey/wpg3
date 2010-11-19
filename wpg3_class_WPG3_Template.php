@@ -61,35 +61,59 @@ class WPG3_Template{
   *   
   *   This function will wp_die id the template file or the class can't be loaded.
   *
-  *   @param string template id (is: classname_methodname of the template)
-  *   @param array item-object e.g. Album, Photo, Movie. Including member items if there are
+  *   @param array $get_item 
+  *   @param object item-object e.g. Album, Photo, Movie. Including member items if there are
   *   @return string html-string of the desired item/template or FALSE on error
-  *   @todo automatically sets styles and javascript
+  *   @todo automatically sets styles and javascript for THIS TEMPLATE (by now we have to set it on Init for ALL templates)
   *   
  **/
- public function use_template($template_id, $data ){
-    $myTemplate = false;
-    $html = '';
-        
-    if ( !is_array($this->templates) ){
-      wp_die('Templates undefined @use_template()');
-    }
-    foreach($this->templates as $key => $val){
-      if($val['id'] === $template_id){
-        $myTemplate = $val;
+ public function use_template($get_item, $data ){
+  
+    if (!is_array($this->templates) ) wp_die('Templates undefined @use_template()');
+    
+    // find the right template id
+    //  $get_item['template'] => valid Template ID or false
+    $myTemplateId = false;
+    $available_Templates = $this->get_templates( $data->entity->type );
+    if ( ! $get_item['template'] ){
+      foreach ( $available_Templates as $tpl ){
+        if ( $tpl['id'] == $get_item['template'] ){
+          $myTemplateId = $tpl['id'];
+        }
       }
     }
+    // Default Template
+    if ( ! $myTemplateId ){
+      $supported_item_types = array( 'photo', 'album' );
+      if ( in_array($data->entity->type , $supported_item_types ) ){
+        $myTemplateId = 'defaultTemplate_default_'.$data->entity->type;
+      }else{
+        wp_die("Unsuported Item type @ defaultTemplate<br /> Currently supported: <em>".implode($supported_item_types, ', ').'</em>' );
+      }
+    }
+    // get the Template
+    $myTemplate = false;
+    foreach($available_Templates as $tpl){
+        if ( $tpl['id'] == $myTemplateId ){
+          $myTemplate = $tpl;
+        }
+    }
+ 
+    $html = '<div class="gallery">';
+
     /* found a template? is it includable? */
     if(!is_array($myTemplate) or !is_file( $myTemplate['file']) or !is_readable($myTemplate['file']) ){
-      wp_die("Couldn't load Template@ WPG3_Template->use_template<br />Template ID: $template_id<br />SEE: &lt;file&gt;_&lt;Method&gt;"); 
+      wp_die("Couldn't load Template@ WPG3_Template->use_template<br />Template ID: ".$myTemplate['id']."<br />SEE: &lt;file&gt;_&lt;Method&gt;"); 
     }
     require_once($myTemplate['file']);
     if ( !$obj = eval("return new ".$myTemplate['class']."();") ){
-      wp_die("Couldn't load Class @ WPG3_Template->use_template<br />Template ID: $template_id<br />SEE: &lt;file&gt;_&lt;Method&gt;"); 
+      wp_die("Couldn't load Class @ WPG3_Template->use_template<br />Template ID: ".$myTemplate['id']."<br />SEE: &lt;file&gt;_&lt;Method&gt;"); 
     }
     // add Styles
     // we have to add the Scripts and CSS more early --> register_script_and_css ... that's bad :(
-    $html .= $obj->{$myTemplate['method']}($data);
+    $html .= $obj->{$myTemplate['method']}($data, $get_item['int_width']);
+    
+    $html .= '</div>';
 
     if (empty($html)){
        $return = false;
@@ -104,7 +128,6 @@ class WPG3_Template{
   *   @param string type: e.g. 'album', 'photo' or whatever you may be defined in the Template Files
   *   @return array Array containing template data
   *                 or false if there no templates available for the chosen type.
-  *   @package WPG3
  **/
  public function get_templates($type){
     $templates = $this->templates;
@@ -119,7 +142,25 @@ class WPG3_Template{
     }
     return $return;
   }
-  
+
+ /**
+  *   Give you all valid Template id's
+  *
+  *   @return array Array Template ID's
+  *                 or false if there no templates available.
+ **/
+ public function get_template_ids(){
+    $templates = $this->templates;
+    $return = array();
+    foreach($templates as $key => $val){
+        array_push($return, $val['id'] );
+    }
+    if (empty($return)){
+       $return = false;
+    }
+    return $return;
+  }
+
  /**
   *   Debug Helper: ECHO Template Objects stored in DB to screen
   *   @package WPG3
@@ -253,7 +294,7 @@ private function getAllFiles($directory, $recursive = true) {
       }
     }
     $template_files  = $this->getAllFiles( plugin_dir_path(__FILE__).'default_template/');
-    if ( trim ( $this->wpg3_options['templateDirectory'] )  ){
+    if ( isset($this->wpg3_options['templateDirectory']) and trim ( $this->wpg3_options['templateDirectory'] )  ){
       foreach ($this->getAllFiles($this->wpg3_options['templateDirectory']) as $template){
               array_push($template_files, $template );
       }
