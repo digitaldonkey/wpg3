@@ -111,7 +111,8 @@ class WPG3_Template{
     }
     // add Styles
     // we have to add the Scripts and CSS more early --> register_script_and_css ... that's bad :(
-    $html .= $obj->{$myTemplate['method']}($data, $get_item['int_width']);
+    isset($get_item['int_width']) ? $width = $get_item['int_width'] : $width = false;
+    $html .= $obj->{$myTemplate['method']}($data, $width );
     
     $html .= '</div>';
 
