@@ -1,4 +1,23 @@
 /* wpg3_default.css */
 .entry-content:before{
-  content: 'Using WPG3 Template Style  wpg3_default.css';
+  /*content: 'Using WPG3 Template Style  wpg3_default.css';*/
+}
+
+.gallery a{
+  text-decoration: none;
+  color: #444;
+}
+.gallery a:hover{
+  text-decoration: underline;
+}
+
+.breadcrump a{
+  font-weight: bold;  
+}
+.breadcrump a:hover{
+  text-decoration: none;
+  color: blue;
+}
+.breadcrump a:after{
+  content: ' » ';
 }
