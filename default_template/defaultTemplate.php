@@ -1,18 +1,19 @@
-<?php
-/**
-  *   Example Template
+<?php 
+ /**
+  *   WPG3 default/example Template
   *
+  *   @link http://wpg3.digitaldonkey.de
+  *   @author Thorsten Krug <driver@digitaldonkey.de>
+  *   @version 1.0
+  *   @filesource
+  *   @package WPG3
+  *  classname must be the same than the Filename without Extension.
+  *  e.g. if the file name is "myFile.php" the flile should contain a class named "myfile"
   *
+  *  Javascript&CSS Files should redide in the Template Folder
+  *  @todo We load ANY CSS/Script at init even if a template is not in use at the page :(
+  *  @todo script_url_dir
  **/
-
-
-/** 
- *  classname must be the same than the Filename without Extension.
- *  e.g. if the file name is "myFile.php" the flile should contain a class named "myfile"
- *
- *  Javascript&CSS Files should redide in the Template Folder
- *  @todo script_url_dir
-**/
 class defaultTemplate
 {
   private $show_available_data = false;
@@ -44,14 +45,16 @@ class defaultTemplate
 
 
   /* PHOTO TEMPLATE */
-  public function default_photo($item){
+  public function default_photo($item, $width=false){
     $html ='';
+    // $width = WPGX-Tag Width value or false if not set
+    //$html .= $width;
     if ($this->show_available_data){
       $html .= '<pre>'.print_r($item, true).'</pre>';
     }
     //
     if(isset($item->wpg3->parents)){
-          $html .= $this->create_bradcrump($item->wpg3->parents);
+          $html .= $this->create_bradcrump($item->wpg3->parents , $item->entity->title);
     }
 
     $html .="<h2>".$item->entity->title."</h2>";
@@ -62,13 +65,13 @@ class defaultTemplate
   
   
   /* ALBUM TEMPLATE */
-  public function default_album($items){    
+  public function default_album($items, $width=false){    
     $html ='';
     if ($this->show_available_data){
       $html .= '<pre style="font-size: small; line-height: 85%;"> Available for Photo Template:<br />'.print_r($items, true).'</pre>';
     }
     if(isset($items->wpg3->parents)){
-          $html .= $this->create_bradcrump($items->wpg3->parents);
+          $html .= $this->create_bradcrump($items->wpg3->parents, $items->entity->title);
     }
 
     $html .="<h2>".$items->entity->title."</h2>";
@@ -136,12 +139,13 @@ class defaultTemplate
 
 
   /* HELPER: create breadcrump */
-  private function create_bradcrump($ancestors){
+  private function create_bradcrump($ancestors, $title){
     $html = '<div class="breadcrump">';
     foreach ($ancestors as $ancestor){
       if ($ancestor[1]==''){ $ancestor[1] = 'Gallery Home'; }
       $html.= '<a href="'.$ancestor[0].'" >'.$ancestor[1].'</a> ';
     }
+    //$html .= $title;
     $html .= '</div>';
 
   return $html;

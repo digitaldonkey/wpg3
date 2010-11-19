@@ -1,10 +1,10 @@
 <?php
 /*
-  Plugin Name: WPG3 0.7
+  Plugin Name: WPG3 0.8
   Plugin URI: http://wpg3.digitaldonkey.de
   Description: Sucessor of the WPG2 Plugin Compatible to Gallery3 and WP3+ @ ALPHA-DEV
   Author URI: http://donkeymedia.eu
-  Version: 0.7
+  Version: 0.8
 */
 /**
   *   WPG3 Main
@@ -40,8 +40,6 @@
    *    - a callback function to display the input box
    *    - a validate function including and an error message if it dosn't validate
    *  
-   *  
-   *   @package WPG3
   **/
 class Wpg3_Main
 { 
@@ -86,7 +84,7 @@ public function wpg3_content($g3_tag=false)
  **/
   global $wp_query;
   if (isset($wp_query->post->ID)) $this->wpg3_options['scriptUrl'] = get_permalink( $wp_query->post->ID );
-
+  
  /**
   *  current REST request Uri
   *
@@ -100,34 +98,15 @@ public function wpg3_content($g3_tag=false)
                     'rest_uri' => $this->wpg3_options['g3Url'].$this->wpg3_options['g3Home'],
                     'width' => false,
                     'template' => false );
-                    
-  /**
-   *  There was a <WPGX>-Tag
-   *  
-   *  @internal
-   *  We might have here : 
-   *  $g3_tag[0] => all of the following merged
-   *  $g3_tag[1] => int.id|str.rel.path|str.REST.path
-   *  $g3_tag[2] => int.width|str.width
-   *  $g3_tag[3] => str.template.id
-  **/
-
-  // Debug REST $url
+  
+  // There was a <WPGX>-Tag
   if ( is_array($g3_tag) ){
-    if ($this->debug){
-      echo '<div style="padding: 5px;border: 1px dotted red;"><strong>&lt;WPGX&gt;'.$g3_tag[0].'&lt;/WPGX&gt;</strong>';
-      echo '<pre style="font-size: 12px;">'."\n";
-      echo '<wpg3> [int.id|str.rel.path|str.REST.path] [ | [int.width|str.width] ] [ | [str.template]</wpg3>';
-      echo "</pre>";
-      echo "</div>";
-    }
-  }
- /**
-  * $_GET Requests
-  *
- **/
-  if ( isset($_GET['itemid']) and is_int( intval($_GET['itemid'])) ){
-    $get_item = array( 'id' => $_GET['itemid'] );
+    $get_item = $this->chec_wpg3_tag($g3_tag);
+  }  
+  
+  // $_GET Requests
+  if ( isset($_GET['itemid']) and intval($_GET['itemid']) > 0 ){
+    $get_item['rest_uri'] = $this->wpg3_options['g3Url'].'/rest/item/'. $_GET['itemid'];
   }
   
   // Debug REST $url
@@ -135,23 +114,157 @@ public function wpg3_content($g3_tag=false)
 	
 	// Getting Items
 	$xhttp = $this->get_module_instance('WPG3_Xhttp');
-  //$xhttp->printSettings();
   //$xhttp->clear_cache();
 
 	$items = $xhttp->get_item( $get_item );
 
   $templates = $this->get_module_instance('WPG3_Template');
   //echo $templates->debug_templates();
-  
-  if ( $items->entity->type == "album" ){
-    echo ($templates->use_template('defaultTemplate_default_album', $items));
-  }
-  if ( $items->entity->type == "photo" ){
-    echo ($templates->use_template('defaultTemplate_default_photo', $items));
-  }	
+
+  echo $templates->use_template( $get_item, $items );
 	
   if($this->debug) echo '<div style="border: 1px dotted red;">WPG3 main script time: '.round( (microtime(true) - $start) , 4)." sec.</div>";
 }
+
+  /**
+   * <WPG3>-Tag Tester
+   *
+  **/  
+  private function testTags()
+  { if (!$this->debug) return;
+    
+    global $_POST, $_SERVER;
+    
+    $testtags = array(
+      // [id|rel.path|REST.path] 
+      '<wpg3>13</wpg3>',
+      '<wpg3>item/1</wpg3>',
+      '<wpg3>item/10</wpg3>',
+      '<wpg3>http://wpg3.local/gallery3/index.php/rest/item/63</wpg3>',
+      
+      // [id|rel.path|REST.path] [ | [int.width|str.[] ] ]
+      '<wpg3>13|200</wpg3>',
+      '<wpg3>item/1|300</wpg3>',
+      '<wpg3>item/10|400</wpg3>',
+      '<wpg3>http://wpg3.local/gallery3/index.php/rest/item/6|600</wpg3>',
+      '<wpg3>item/1|thumb</wpg3>',
+      '<wpg3>item/1|thumbnail</wpg3>',
+      '<wpg3>item/10|resize</wpg3>',
+      '<wpg3>http://wpg3.local/gallery3/index.php/rest/item/63|medium</wpg3>',
+      '<wpg3>item/1|full</wpg3>',
+      '<wpg3>item/10|large</wpg3>',
+      
+      // [id|rel.path|REST.path]  [ | [int.width|str.[] ] [ | [int.width|str.[] ] ]]
+      '<wpg3>13|200|defaultTemplate_default_photo</wpg3>',
+      '<wpg3>item/1|300|defaultTemplate_default_album</wpg3>',
+      '<wpg3>item/1|300|defaultTemplate_default_photo</wpg3>'
+    );
+
+    echo '<form action="'.$_SERVER['PHP_SELF'].'?tagtester" method="post" onchange="this.submit()">'."\n";    
+    echo '<select name="tags">'."\n";
+    foreach ($testtags as $tag)
+      { 
+        $sel ="";
+        if ($_POST['tags'] == $tag) $sel = ' selected="selected" ';
+        echo '<option '.$sel.' value="'.$tag.'">'.htmlentities($tag)."</option>\n";
+      }
+    echo '</select>'."\n";
+    echo '</form>'."\n";
+  
+  }
+  
+ /**
+  *   Validate the <WPGX> Tag
+  *
+  *   @param array $g3_tag preg_replace
+  *   @return array $get_item the santized request
+ **/  
+  private function chec_wpg3_tag($g3_tag)
+  {
+    $get_item = array('id' => false,
+                    'rest_uri' => $this->wpg3_options['g3Url'].$this->wpg3_options['g3Home'],
+                    'width' => false,
+                    'template' => false );
+   /**
+     *  If there was a <WPGX>-Tag
+     *  
+     *  @internal
+     *  We might have here : 
+     *  $g3_tag[0] => all of the following merged
+     *  $g3_tag[1] => int.id|str.rel.path|str.REST.path
+     *  $g3_tag[2] => int.width|str.width
+     *  $g3_tag[3] => str.template.id
+    **/
+
+  // Debug REST $url
+    // DEBUG
+    if ($this->debug){
+      echo '<div style="padding: 5px;border: 1px dotted red;"><strong>&lt;WPGX&gt;'.$g3_tag[0].'&lt;/WPGX&gt;</strong>';
+      echo '<pre style="font-size: 12px;">'."\n";
+      echo '<wpg3> [int.id|str.rel.path|str.REST.path] [ | [int.width|str.width] ] [ | [str.template]</wpg3>';
+      echo "</pre>";
+      echo "</div>";
+    }
+    
+    // check for int.id|str.rel.path|str.REST.path
+    if (isset($g3_tag[1])){
+    
+      // check for int ID
+      if (intval($g3_tag[1])>0){
+        $get_item['rest_uri'] = $this->wpg3_options['g3Url'].'/rest/item/'.$g3_tag[1];
+      }
+      // str.rel.path
+      $count = strlen('item/');
+      if ( intval (substr($g3_tag[1], $count) ) > 0 ){
+        $get_item['rest_uri'] = $this->wpg3_options['g3Url'].'/rest/item/'.substr($g3_tag[1], $count);
+      }    
+      // str.REST.path
+      $count = strlen($this->wpg3_options['g3Url'].'/rest/item/');
+      if ( substr($g3_tag[1], 0, $count) === $this->wpg3_options['g3Url'].'/rest/item/' ){
+        $get_item['rest_uri'] = $g3_tag[1];
+      }
+          
+    }
+      
+    // check for int.width|str.width
+    if (isset($g3_tag[2])){
+      // for int.width
+      if(intval ($g3_tag[2]) > 0){
+        if ($g3_tag[2] <= $this->wpg3_options['g3Resize']['max_thumb'] ){
+          $get_item ['width'] = 'thumb';
+        }
+        if ($g3_tag[2] >=  $this->wpg3_options['g3Resize']['max_thumb'] and $g3_tag[2] < $this->wpg3_options['g3Resize']['max_resize'] ){
+          $get_item ['width'] = 'resize';
+        }
+        if ($g3_tag[2] >= $this->wpg3_options['g3Resize']['max_resize'] ){
+          $get_item ['width'] = 'full';
+        }
+        $get_item ['int_width'] = $g3_tag[2];
+      }
+      // str.width
+      $valid_sizes = array('thumb', 'thumbnail', 'resize', 'medium', 'custom', 'full', 'large');
+      if (in_array ( $g3_tag[2], $valid_sizes, true) ){
+        if($g3_tag[2] == 'thumb' or $g3_tag[2] == 'thumbnail'){
+          $get_item ['width'] = 'thumb';
+        }
+        if($g3_tag[2] == 'resize' or $g3_tag[2] == 'medium' or $g3_tag[2] == 'custom'){
+          $get_item ['width'] = 'resize';
+        }
+        if($g3_tag[2] == 'full' or $g3_tag[2] == 'large' or $g3_tag[2] == 'large'){
+          $get_item ['width'] = 'full';
+        }
+      }
+    }
+    
+    // check for  str.template.id
+    if ( isset($g3_tag[3]) and is_string($g3_tag[3]) ){
+      $tpl = $this->get_module_instance('WPG3_Template');
+      if (in_array ( $g3_tag[3] , $tpl->get_template_ids() , true ) ){
+        $get_item['template'] = $g3_tag[3];
+      }
+    }
+    return $get_item;
+  }
 
 /**
  *    WPG3 Content Callback
@@ -188,20 +301,26 @@ public function wpg3_content($g3_tag=false)
  *  @todo implement Template Tag Support
 **/
   public function wpg3_content_callback( $content , $templateTag=false) {
-    $return = false;
+    $return = false;    
     /* Run the input check. */		
-    if(false === strpos($content, '<wpg') and !$templateTag) {
+      
+    /**
+     * Tag Tester
+    **/
+    if ( isset($_GET['tagtester']) ){
+      $this->testTags();
+      if ( isset($_POST['tags']) ){
+        $content =  '<p style="color: red;">Used <WPGX>-Tag: '.htmlentities($_POST['tags']).'</p>';
+        $content .=  $_POST['tags'] ;
+        
+      }
+    }
+
+    if(false === stripos($content, '<wpg') and !$templateTag) {
       $return = $content;
     }else{
       $return = preg_replace_callback('/<wpg[23]>([^\|]*)[\|]?([^\|]*)[\|]?(.*)<\/wpg[23]>/i', array( $this, 'wpg3_content' ), $content );
-      
-      /*
-      echo "<pre>\n";
-      if (! is_array($return)) echo 'NO ARRAY';
-      print_r ( $return );
-      echo "</pre>";
-      */
-   }
+   }   
     return $return;
   }
 
@@ -241,6 +360,16 @@ public function wpg3_content($g3_tag=false)
 
       $template = $this->get_module_instance('WPG3_Template');
       array_push($modules, $template->get_module() );
+      
+      //$gallery = $this->get_module_instance('WPG3_Gallery');
+      //$gallery->init_wp_post_types();
+      //array_push($modules, $gallery->get_module() );
+
+      /*
+      echo "<pre>\n";
+      print_r ( $this->wpg3_options );
+      echo "</pre>";
+      */
     }
     
     register_setting(
@@ -364,8 +493,18 @@ public function wpg3_content($g3_tag=false)
                                         'field_display' => array( $this , 'admin_options_section_display_g3Url'), 
                                         // function CALLBACK validate field
                                         'field_validate' => array( $this , 'admin_options_section_validate_g3Url')
+                                       ),
+                                        array(
+                                        // unique ID
+                                        'field_id' => 'g3Resize', 
+                                        // field TITLE text
+                                        'field_title' => __('Resize Options'), 
+                                        // function CALLBACK, to display the input box
+                                        'field_display' => array( $this , 'admin_options_section_display_g3Resize'), 
+                                        // function CALLBACK validate field
+                                        'field_validate' => array( $this , 'admin_options_section_validate_g3Resize')
                                        )
-                                     )
+                               )
           );
     return $main_mudule;
   }
@@ -390,9 +529,67 @@ public function wpg3_content($g3_tag=false)
     </div>
 
 <?php }
+
+
+
+/**
+ *  Options Page Output for "g3Resize"
+ *
+ *  @todo Pass the Width-param from WPG3-Tag to Template
+**/
+  public function admin_options_section_display_g3Resize()
+  { 
+    $options = $this->wpg3_options; 
+    
+    $field_id = 'g3Resize';
+    $val = isset($options[$field_id])? $options[$field_id] : array('max_thumb' => 100, 'max_resize' => 300) ;
+    ?>
+    <p style = "width:600px;">Gallery 2 <strong>offered custom Resizes</strong>. Gallery3 not yet.<br />
+       You can chose which reize to use in WPG3 for the width parameter in WPGX-Tags<br />
+       <strong>Note:</strong><em> The Numbered width paramater is available in the Template to adjust width by CSS.</em>
+    </p>
+    <table >
+      <tr>
+        <td style = "text-align: right;">Max pixel width<br />to use Thumb</td>
+      <?php
+        echo '<td><input id="'.$field_id.'[max_thumb]" name="wpg3_options['.$field_id.'][max_thumb]" size="10" type="text" value="'.$val['max_thumb'].'" /> px</td>'."\n"; 
+        echo '<td style = "text-align: center;">Max pixel width<br />to use Medium</td>';
+        echo '<td><input id="'.$field_id.'[max_resize]" name="wpg3_options['.$field_id.'][max_resize]" size="10" type="text" value="'.$val['max_resize'].'" /> px</td>'."\n"; 
+      ?>
+      <td>For higher width values<br />we use the Fullsize Image</td>
+    </tr>
+   </table>
+   <p>According to this settings WPG3 will chose the
+   'thumb', 'resize' or 'full' G3-Image to be inserted for a width parameter</p>
+<?php
+  }
+  
+
+/**
+ *  Options Page Validation for "g3Resize"
+ *
+**/
+  public function admin_options_section_validate_g3Resize($field_val)
+  { 
+   $return = isset($this->wpg3_options['g3Resize']) ? $this->wpg3_options['g3Resize'] : array('max_thumb' => 60, 'max_resize' => 500 ); 
+    if ( is_array($field_val)){
+      
+      if ( intval( $field_val['max_thumb']) > 0  and intval( $field_val['max_resize'] ) > $field_val['max_thumb']){
+        $return['max_thumb'] = $field_val['max_thumb'];        
+      }else{
+      add_settings_error('g3Resize', 
+                         'settings_updated', 
+                         __('The Thumb width must be lower than the Medium width @ g3Resize<br /> You entered:<br /> max_thumb = '.$field_val['max_thumb'].'px<br />max_resize = '.$field_val['max_resize'].'px'));
+      }
+      if ( intval( $field_val['max_resize']) > 0 and $field_val['max_resize'] > $return['max_thumb'] ){
+       $return['max_resize'] = $field_val['max_resize'];
+      }
+    }
+    return $return;
+  }
   
 /**
- *  Options Page Output for "field1"
+ *  Options Page Output for "g3Url"
  *
 **/
   public function admin_options_section_display_g3Url()
@@ -403,7 +600,7 @@ public function wpg3_content($g3_tag=false)
     </p>
     <?php
     $val = isset($options[$field_id])?$options[$field_id]:get_bloginfo('url').'/gallery3/index.php';
-    !$this->is_enabled ? $enabled = ' style="color: red;" ':'';
+    !$this->is_enabled ? $enabled = ' style="color: red;" ': $enabled ='';
     echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" '.$enabled.'size="60" type="text" value="'.$val.'" />'."\n";  
   }
 
@@ -427,8 +624,11 @@ public function wpg3_content($g3_tag=false)
     }
     return $return;
   }
-	
-	private function __autoload($class_name) {
+
+
+
+
+private function __autoload($class_name) {
     include 'wpg3_class_'.$class_name . '.php';    
   }
 	public function get_options() {
@@ -436,7 +636,7 @@ public function wpg3_content($g3_tag=false)
   }
   public function is_enabled($type){
     $return = false;
-    if ($this->wpg3_options[$type] == "enabled") $return = true;
+    if (isset($this->wpg3_options[$type]) and $this->wpg3_options[$type] == "enabled") $return = true;
     return $return;
   }
 
