@@ -7,8 +7,19 @@ Stable tag: Trunk
 Donate link: http://donkeymedia.eu/2010/08/26/worpress-multilingual-contactform/
 
 == Description ==
-pre Alpha State development Version of Wordpress Plugin connecting Gallery3 and Wordpress3+ maintaining compatibility to WPG2
-In this experimental releas we'll integrate a g3 into a custom Post - ceacing experiments.
+Alpha State development Version of Wordpress Plugin connecting Gallery3 and Wordpress3+ maintaining compatibility to WPG2.
+
+Call for Templates: 
+WPG3 has a template System integrated which let you chose the way you display Gallery-Items or Albums. 
+Please submit your template Ideas!
+
+For now we miss the REWRITE functionality and a image-chooser.
+
+Features:
+ - XHTTP-caching
+ - Themeable output (use ANY REST data in your Template)
+ - <WPG3> and <WPG2> tag Support
+
 - Requires PHP5 (like Gallery3)
 - Requires Gallery3 REST Module to be enabled and (for now) the REST Option allow_guest_access enabled.
 
@@ -17,7 +28,7 @@ In this experimental releas we'll integrate a g3 into a custom Post - ceacing ex
 1. Upload to your plugins folder, usually `wp-content/plugins/`
 2. Activate the plugin on the plugin screen.
 3. Configure the plugin on it's settings screen. Settings -> WPG3
-4. Add the '<wpg3></wpg3>' to the body of the post/page in the editors HTML mode to get a full gallery.
+4. Add the '<wpg3>item/1</wpg3>' to the body of the post/page in the editors HTML mode to get a full gallery.
 
 
 == Frequently Asked Questions ==
@@ -25,7 +36,7 @@ In this experimental releas we'll integrate a g3 into a custom Post - ceacing ex
 = How do I get my G3 Homepage =
 
 Make sure you entered /rest/item/1 at "Default Gallery Album" in Options Page.
-Add <wpg3></wpg3> to the body of the post/page in the editors HTML mode.
+Add <wpg3>item/1</wpg3> to the body of the post/page in the editors HTML mode.
 
 == Screenshots ==
 not yet
@@ -33,5 +44,5 @@ not yet
 not yet
 == Upgrade Notice ==
 
-= 0.7 =
+= 0.8 =
 Template System - enables Templating
