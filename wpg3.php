@@ -1,17 +1,17 @@
 <?php
 /*
-  Plugin Name: WPG3 0.8
+  Plugin Name: WPG3
   Plugin URI: http://wpg3.digitaldonkey.de
   Description: Sucessor of the WPG2 Plugin Compatible to Gallery3 and WP3+ @ ALPHA-DEV
   Author URI: http://donkeymedia.eu
-  Version: 0.8
+  Version: 0.82
 */
 /**
   *   WPG3 Main
   *
   *   @link http://wpg3.digitaldonkey.de
   *   @author Thorsten Krug <driver@digitaldonkey.de>
-  *   @version 1.0
+  *   @version 0.82
   *   @filesource
   *   @package WPG3
  **/
@@ -20,7 +20,7 @@
 //error_reporting (1);  
 
   global $wpg3;
-  $wpg3 = new Wpg3_Main();
+  $wpg3 = new WPG3_Main();
 
  /**
    *   MAIN CLASS 
@@ -41,7 +41,7 @@
    *    - a validate function including and an error message if it dosn't validate
    *  
   **/
-class Wpg3_Main
+class WPG3_Main
 { 
   public $is_enabled = false;
   private $wpg3_options;
@@ -640,7 +640,7 @@ private function __autoload($class_name) {
     return $return;
   }
 
-}// END class Wpg3_Main
+}// END class WPG3_Main
 
 	add_action('init', array(&$wpg3, 'wpg3_init') );
 	add_action('admin_init', array(&$wpg3, 'wpg3_admin_init') );

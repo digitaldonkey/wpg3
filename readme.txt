@@ -18,7 +18,7 @@ For now we miss the REWRITE functionality and a image-chooser.
 Features
  - XHTTP-caching
  - Themeable output (use ANY REST data in your Template)
- - <WPG3> and <WPG2> tag Support
+ - &gt;WPG3&lt; and &gt;/WPG2&lt; tag Support
 
 - Requires PHP5 (like Gallery3)
 - Requires Gallery3 REST Module to be enabled and (for now) the REST Option allow_guest_access enabled.
@@ -28,7 +28,7 @@ Features
 1. Upload to your plugins folder, usually `wp-content/plugins/`
 2. Activate the plugin on the plugin screen.
 3. Configure the plugin on it's settings screen. Settings -> WPG3
-4. Add the '<wpg3>item/1</wpg3>' to the body of the post/page in the editors HTML mode to get a full gallery.
+4. Add the '&gt;WPG3&lt;item/1&gt;/WPG2&lt;' to the body of the post/page in the editors HTML mode to get a full gallery.
 
 
 == Frequently Asked Questions ==
@@ -36,7 +36,7 @@ Features
 = How do I get my G3 Homepage =
 
 Make sure you entered /rest/item/1 at "Default Gallery Album" in Options Page.
-Add <wpg3>item/1</wpg3> to the body of the post/page in the editors HTML mode.
+Add &gt;WPG3&lt;item/1&gt;/WPG2&lt; to the body of the post/page in the editors HTML mode.
 
 == Screenshots ==
 not yet
