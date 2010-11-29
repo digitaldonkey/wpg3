@@ -329,7 +329,7 @@ private function getAllFiles($directory, $recursive = true) {
  *  Register Options
  *
 **/
-  public function get_module(){
+  public function admin_init(){
      $this_module = array(
                 // unique section ID
                 'unique_name' =>'template_options', 
