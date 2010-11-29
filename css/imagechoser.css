@@ -1,0 +1,148 @@
+/**
+ *  Style for the Imagechoser Iframe-Page
+ *  
+ *  @package wpg3
+**/
+body{
+  height: auto;
+}
+#media-upload .media-item, #media-album-info, .media-item{
+  width: auto;
+  overflow: hidden;
+}
+#wpg3-form{
+  width: 625px;
+}
+#wpg3-form>tr{
+  height: auto;
+  border: none;
+}
+#wpg3-form>p{
+  margin: 0;
+  padding: 1em 0 1em 0;
+}
+#wpg3-form td>p{
+  line-height: 10px;
+  margin-left: 2em;
+}
+#media-upload .describe th.label {
+}
+#media-upload .slidetoggle{
+  border-top: none !important;
+  background: #bbb;
+}
+#media-album-info{
+  border: 1px solid #dfdfdf;
+  border-bottom: none;
+  padding-left: 20px;
+  font-size: 1.1em;
+  /* background: white; */
+	background-image: url("../images/toggle-closed.png");
+	background-position: 5px 14px;
+	background-repeat: no-repeat;
+  
+}
+.media-item{
+  padding-left: 35px;
+	background-image: url("../images/toggle-closed.png");
+	background-position: 20px 14px;
+	background-repeat: no-repeat;
+  line-height: 28px;
+}
+.media-item table {
+  background-color: #bbb;
+}
+/* Buttons */
+.open_album_parent, .open_album, .describe-toggle-on, .describe-toggle-off{
+  display: block;
+  float: right;
+  width: 30px;
+  height: 24px;
+	background-position: center center;
+	background-repeat: no-repeat;
+}
+.open_album_parent{
+  margin-top: 4px;
+	background-image: url("../images/go_up.png");
+}
+.open_album{
+	background-image: url("../images/goto.png");
+}
+.describe-toggle-on{
+	background-image: url("../images/insert_bw.png");
+  margin: 5px 0 0 3px;
+}
+.describe-toggle-on:hover{
+	background-image: url("../images/insert.png");
+}
+
+.describe-toggle-off, .describe-toggle-off:hover{
+	background-image: url("../images/insert.png");
+  margin: 1px 0 0 3px;
+	display: none;
+	text-decoration: none;
+  color: black;
+  text-align: center;
+  padding-bottom: 8px;
+}
+.toggle{
+}
+/* Thumbs */
+
+
+.photoFrame, .albumFrame{
+  margin: 5px !important;
+  display: inline-block;
+  float: left;
+  width: 40px !important;
+  height: 32px;
+}
+.albumFrame img, .photoFrame img{
+  width: 34px !important; 
+  height: 25px !important;
+  margin: 0 !important;
+}
+.albumFrame{
+  background: url("../images/album_frame.png") no-repeat center center !important;
+}
+.photoFrame{
+  margin-left: 6px !important;
+}
+.albumFrame img{
+  border-top: 1px solid black;
+  border-left: 1px solid black;
+}
+.photoFrame img{
+  border: 1px solid black;
+}
+/* ITEMS */
+.slidetoggle{
+
+  padding: 15px 0 5px 0 !important;
+  width: 585px !important;
+  background: white !important;
+}
+.pinkynail{
+	background-position: center center;
+	background-repeat: no-repeat;
+	background-image: url("../images/ajax-loading.gif");
+}
+
+.item_title{
+  display: inline-block;
+  width: 200px;
+  overflow: hidden;
+  margin: 3px;
+}
+#media-album-info .item_title{
+  width: 140px;
+}
+.thumbBlock{
+  float: left;
+  min-width: 150px;
+  min-height: 100px;
+  margin-right: 15px;
+}
+.metaBlock  {
+  /*border: 1px dotted green;*/
+}

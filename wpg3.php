@@ -114,7 +114,7 @@ public function wpg3_content($g3_tag=false)
 	
 	// Getting Items
 	$xhttp = $this->get_module_instance('WPG3_Xhttp');
-  //$xhttp->clear_cache();
+  $xhttp->clear_cache();
 
 	$items = $xhttp->get_item( $get_item );
 
@@ -356,15 +356,16 @@ public function wpg3_content($g3_tag=false)
     if($this->is_enabled){
 
       $xhttp = $this->get_module_instance('WPG3_Xhttp');
-      array_push($modules, $xhttp->get_module() );
+      array_push($modules, $xhttp->admin_init() );
 
       $template = $this->get_module_instance('WPG3_Template');
-      array_push($modules, $template->get_module() );
+      array_push($modules, $template->admin_init() );
       
-      //$gallery = $this->get_module_instance('WPG3_Gallery');
-      //$gallery->init_wp_post_types();
-      //array_push($modules, $gallery->get_module() );
+      $imagechoser = $this->get_module_instance('WPG3_Imagechoser');
+      array_push($modules, $imagechoser->admin_init() );
 
+      $gallerypage = $this->get_module_instance('WPG3_Rewrite');
+      array_push($modules, $gallerypage->admin_init() );
       /*
       echo "<pre>\n";
       print_r ( $this->wpg3_options );
@@ -644,7 +645,8 @@ private function __autoload($class_name) {
 
 	add_action('init', array(&$wpg3, 'wpg3_init') );
 	add_action('admin_init', array(&$wpg3, 'wpg3_admin_init') );
-  add_action('admin_menu', array(&$wpg3, 'admin_add_page') );
+   /* Add options Page */
+    add_action('admin_menu', array(&$wpg3, 'admin_add_page') );
   if($wpg3->is_enabled){
     add_filter('the_content', array(&$wpg3, 'wpg3_content_callback') ); 
  }

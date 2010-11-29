@@ -144,7 +144,12 @@ class WPG3_Xhttp{
       //echo '<div style="width: 40px; height:10px; background:green;">loaded cache</div>';
     }else{
       //echo '<div style="width: 40px; height:10px; background:red;">get XML</div>';
-      $this_req = $this->cache['WP_Http']->request( $uri );
+     
+      $this_req = $this->cache['WP_Http']->request( $uri, $this->get_rest_header() );
+      if ( $this_req['response']['code'] != 200 ){
+        wp_die("Couldn't connect by Rest @ getObject<br /><pre>".print_r($this_req, true)."</pre>");
+      }
+      
       $this->cache['items'][$uri] = json_decode($this_req['body']);
       $return = $this->cache['items'][$uri];
       $this->update_cache = true;
@@ -165,8 +170,17 @@ class WPG3_Xhttp{
     if(!empty($load_items)){
       $uri = $this->wpg3_options['g3Url'].'/rest/items?urls=["'.implode( '","' , $load_items ).'"]';
       //echo "<br />getMultipleObjects URI : ".$uri."<br />";
-      $this_req = $this->cache['WP_Http']->request( $uri );
+      
+      $this_req = $this->cache['WP_Http']->request( $uri, $this->get_rest_header() );
+      if ( $this_req['response']['code'] != 200 ){
+        wp_die("Couldn't connect by Rest @ getMultipleObjects<br /><pre>".print_r($this_req, true)."</pre>");
+      }
+
       $items = json_decode($this_req['body']);
+      if (empty ( $items )){
+        wp_die("Couldn't get multiple items @WPG3_Xhttp->getMultipleObjects()");
+      }
+
       foreach ($items as $item){
         $this->cache['items'][$item->url] = $item;
       }
@@ -179,11 +193,27 @@ class WPG3_Xhttp{
    return $return;
   }
 
+
+/**
+ *  REST Header
+ *
+**/
+public function get_rest_header($method = "GET" ){
+  $return = false;
+  if(isset($this->wpg3_options['restReqestKey'])){
+     $return = array(
+            'method' => $method,
+            'headers' =>  array( 'X-Gallery-Request-Key' => $this->wpg3_options['restReqestKey'])
+             );
+  }
+  return $return;
+}
+
 /**
  *  Register Options
  *
 **/
-  public function get_module(){
+  public function admin_init(){
      $main_mudule = array(
                 // unique section ID
                 'unique_name' =>'xhttp_options', 
@@ -212,6 +242,16 @@ class WPG3_Xhttp{
                                         'field_display' => array( $this , 'admin_options_section_display_cacheTime'), 
                                         // function CALLBACK validate field
                                         'field_validate' => array( $this , 'admin_options_section_validate_cacheTime')
+                                       ),
+                                        array(
+                                        // unique ID
+                                        'field_id' => 'restReqestKey', 
+                                        // field TITLE text
+                                        'field_title' => __('Rest API Key'), 
+                                        // function CALLBACK, to display the input box
+                                        'field_display' => array( $this , 'admin_options_section_display_restReqestKey'), 
+                                        // function CALLBACK validate field
+                                        'field_validate' => array( $this , 'admin_options_section_validate_restReqestKey')
                                        )
                                      )
           );
@@ -238,7 +278,7 @@ class WPG3_Xhttp{
     $options = $this->wpg3_options; 
     $val = isset($options[$field_id])?$options[$field_id]:'/rest/item/1';
     echo '<p>Default g3 Album/Item to display. e.g. <strong>/rest/item/1</strong></p>';
-    echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="60" type="text" value="'.$val.'" />'."\n";  
+    echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="30" type="text" value="'.$val.'" />'."\n";  
   }
 
 /**
@@ -271,7 +311,7 @@ class WPG3_Xhttp{
     $options = $this->wpg3_options; 
     $val = isset($options[$field_id])?$options[$field_id]:900;
     echo '<p>Time to cache Gallery Items in Seconds e.g. 15 minutes = 60*15 => <strong>900</strong></p>';
-    echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="60" type="text" value="'.$val.'" />'."\n";  
+    echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="10" type="text" value="'.$val.'" />'."\n";  
   }
 
 /**
@@ -293,7 +333,61 @@ class WPG3_Xhttp{
     return $return;
   }
 
+/**
+ *  Options Page Output for "restReqestKey"
+ *
+**/
+  public function admin_options_section_display_restReqestKey()
+  { $field_id = 'restReqestKey';
+    $options = $this->wpg3_options; 
+    $val = isset($options[$field_id])?$options[$field_id]:'';
+    echo '<p>There is a single Key used for all get requests.</p>';
+    echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="30" type="text" value="'.$val.'" />'."\n";  
+  }
 
+/**
+ *  Options Page Validation for "restReqestKey"
+ *
+**/
+  public function admin_options_section_validate_restReqestKey($field_val)
+  {
+    $return = false;
+    // validate input
+    if (!empty ($field_val) ){
+      if ( $this->test_restReqestKey($field_val) ){
+            return $field_val;
+      }else{
+        // create a nice Error including you field_id
+        add_settings_error('restReqestKey', 
+                           'settings_updated', 
+                           __('A valid Rest-Api Key to your Gallery is rqeuired @ restReqestKey<br /> You entered: "'.$field_val.'"'));
+      }
+    }
+    return $return;
+  }
+
+/**
+ *  Test restReqestKey
+ *
+**/
+  private function test_restReqestKey($restReqestKey)
+  {
+    $return = false;
+    
+    $url = $this->wpg3_options['g3Url'].$this->wpg3_options['g3Home'];
+
+    $request = array(
+        'method' => 'GET',
+        'headers' =>  array( 'X-Gallery-Request-Key' => $restReqestKey)
+        );
+    
+    $response = $this->cache['WP_Http']->request($url, $request) ;
+    
+    if ($response['response']['code'] == 200){
+      $return = true;
+    }
+    return $return;
+  }
 
 
 
