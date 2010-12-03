@@ -13,7 +13,7 @@ Call for Templates:
 <b>WPG3 has a template System integrated which let you chose the way you display Gallery-Items or Albums. 
 Please submit your template Ideas!</b>
 
-For now we miss the REWRITE functionality and a image-chooser.
+For now we miss image-chooser. But it's on the way ;)
 
 Features
  - XHTTP-caching
@@ -39,10 +39,17 @@ Make sure you entered /rest/item/1 at "Default Gallery Album" in Options Page.
 Add &lt;WPG3&gt;item/1&lt;/WPG2&gt; to the body of the post/page in the editors HTML mode.
 
 == Screenshots ==
-not yet
-== Changelog ==
-not yet
-== Upgrade Notice ==
+1. Gallery3 Page
+2. Gallery3 Options
 
-= 0.8 =
+== Changelog ==
+= 0.85 =
+Integrated Gallery3 Page with Rewrite Suppport (make sure Rewrites are enabled)
+= 0.82 =
+WPG3-Tag support. Compatible to WPG2-Tags
+
+== Upgrade Notice ==
+= 0.85 =
+We're getting closer. Please give me some feedback!
+= 0.82 =
 Template System - enables Templating

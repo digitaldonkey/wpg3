@@ -2,11 +2,11 @@
  /**
    *   IMAGE GALLERY (Image Choser) CLASS 
    *
+   *   Adds Gallery3 Media Tab to the Wordpress Image-Choser.
    *
-   *  
-   *
-   *  
-   *  wpg3_class_WPG3_Imagechoser
+   *  @event admin_init 
+   *  @package WPG3
+   *  @filesource
   **/
 class WPG3_Imagechoser
 { 
@@ -22,6 +22,17 @@ class WPG3_Imagechoser
     }
     $this->wpg3_options = $wpg3_options;
   }
+
+
+/**
+ *  Register Options and Admin Init filter
+ *
+**/
+public function main_init()
+{
+
+
+}
 
 
 /**
