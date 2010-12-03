@@ -158,7 +158,6 @@ public function admin_init()
     // only handle output on g3 Page
     if (get_the_ID() != $this->wpg3_options['g3PageId']['ID'])
     return $content;
-    
     global $wpg3, $wp_query;
 
     $pagename = $this->wpg3_options['g3PageId']['post_name'];
@@ -233,7 +232,7 @@ public function page_add_rewrites($rules)
       $newrules = array($pagename.'/(.*)?$' => 'index.php?pagename='.$pagename.'&'.$pagename.'=$matches[1]');
       $rules = $newrules + $rules;
     }
-    return $aRules;
+    return $rules;
 }
   
 /**

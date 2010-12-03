@@ -31,20 +31,21 @@
 class defaultTemplate
 {
   private $show_available_data = false;
+  
   private $templates = array(
     array(
     'name'  => 'Default Photo Template',
     'type'  => 'photo',
     'method'=> 'default_photo',
-    'script'=> 'http://wpg3.local/wp-content/plugins/wpg3/default_template/wpg3_default.js',
-    'css'=>    'http://wpg3.local/wp-content/plugins/wpg3/default_template/wpg3_default.css'
+    //'script'=>  $default_css,
+    //'css'=>     $default_js
     ),
     array(
     'name'  => 'Default Album Template',
     'type'  => 'album',
     'method'=> 'default_album',
-    'script'=> 'http://wpg3.local/wp-content/plugins/wpg3/default_template/wpg3_default.js',
-    'css'=>    'http://wpg3.local/wp-content/plugins/wpg3/default_template/wpg3_default.css'
+    //'script'=>  $default_css,
+    //'css'=>     $default_js
     ),
   );
  /**
@@ -53,6 +54,10 @@ class defaultTemplate
   *   @return array available Templates
  **/
  public function get_templates(){
+    foreach ($this->templates as &$template){
+      $template['css'] = get_bloginfo('wpurl').'/wp-content/plugins/wpg3/default_template/wpg3_default.css';
+      $template['script'] = get_bloginfo('wpurl').'/wp-content/plugins/wpg3/default_template/wpg3_default.js';
+    }
     return $this->templates;
   }
   /**
@@ -123,11 +128,11 @@ class defaultTemplate
     global $wpg3_settings;
     
     $html = '';
-    $html .= "<div class='block' style='display: inline-block; width: 150px; margin: 3px; background: #efefef; text-align: center; padding-top: 6px;'>";
-
     if ($item->entity->type == "album"){
+      $html .= "<div class='block item-album'>";
       $html .= '<a href="'.$item->links->item[0].'">';            
-    }else{             
+    }else{
+      $html .= "<div class='block item'>";
       $html .= "<a href='".$item->entity->file_url_public."' rel='lightbox[photos]' class='lightbox-enabled' title='".$item->entity->name."'>";
     }
     $html .= "<img src='".$item->entity->thumb_url_public."' />";

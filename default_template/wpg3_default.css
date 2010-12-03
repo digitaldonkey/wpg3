@@ -21,3 +21,15 @@
 .breadcrump a:after{
   content: ' » ';
 }
+.gallery .block{
+  float: left;
+  width: auto;
+  display: inline-block; 
+  margin: 1px; 
+  text-align: center;
+  padding: 4px;
+  background: #efefef; 
+}
+.gallery .item-album a{
+  font-weight: bold;
+}
