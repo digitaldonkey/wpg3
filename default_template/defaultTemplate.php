@@ -2,17 +2,31 @@
  /**
   *   WPG3 default/example Template
   *
-  *   @link http://wpg3.digitaldonkey.de
-  *   @author Thorsten Krug <driver@digitaldonkey.de>
-  *   @version 1.0
-  *   @filesource
-  *   @package WPG3
+  *
   *  classname must be the same than the Filename without Extension.
   *  e.g. if the file name is "myFile.php" the flile should contain a class named "myfile"
   *
   *  Javascript&CSS Files should redide in the Template Folder
+  *
   *  @todo We load ANY CSS/Script at init even if a template is not in use at the page :(
   *  @todo script_url_dir
+  *  @link http://wpg3.digitaldonkey.de
+  *  @author Thorsten Krug <driver@digitaldonkey.de>
+  *  @filesource
+  *  @package WPG3
+ **/
+ 
+ /**
+  *   Default Template
+  *
+  *   {@source}
+  *
+  *
+  *   @link http://wpg3.digitaldonkey.de
+  *   @author Thorsten Krug <driver@digitaldonkey.de>
+  *   @version 0.82
+  *   @filesource
+  *   @package WPG3
  **/
 class defaultTemplate
 {
@@ -33,18 +47,25 @@ class defaultTemplate
     'css'=>    'http://wpg3.local/wp-content/plugins/wpg3/default_template/wpg3_default.css'
     ),
   );
- /* register the templates */
+ /**
+  *   register the templates
+  *
+  *   @return array available Templates
+ **/
  public function get_templates(){
     return $this->templates;
   }
   /**
+   *  PHOTO TEMPLATE
+   *
    *  Any Template should return the HTML output
    *  Templates for single elements (e.g. photo, movie) will get one Item
-   *  Album Templates will will get a array withe the template and Subitems at Members
+   *
+   *   {@source}
+   *
+   *  @param object item 
+   *  @param int Width. This is passed by the WPG3-Tag
   **/
-
-
-  /* PHOTO TEMPLATE */
   public function default_photo($item, $width=false){
     $html ='';
     // $width = WPGX-Tag Width value or false if not set
@@ -53,8 +74,8 @@ class defaultTemplate
       $html .= '<pre>'.print_r($item, true).'</pre>';
     }
     //
-    if(isset($item->wpg3->parents)){
-          $html .= $this->create_bradcrump($item->wpg3->parents , $item->entity->title);
+    if(isset($item->links->parents)){
+          $html .= $this->create_bradcrump($item->links->parents , $item->entity->title);
     }
 
     $html .="<h2>".$item->entity->title."</h2>";
@@ -64,14 +85,24 @@ class defaultTemplate
   }
   
   
-  /* ALBUM TEMPLATE */
+  /**
+   *  ALBUM TEMPLATE
+   *
+   *  Any Template should return the HTML output
+   *  Album Templates will will get a array withe the template and Subitems at Members
+   *
+   *   {@source}
+   *   
+   *  @param object items with children
+   *  @param int Width. This is passed by the WPG3-Tag
+  **/
   public function default_album($items, $width=false){    
     $html ='';
     if ($this->show_available_data){
       $html .= '<pre style="font-size: small; line-height: 85%;"> Available for Photo Template:<br />'.print_r($items, true).'</pre>';
     }
-    if(isset($items->wpg3->parents)){
-          $html .= $this->create_bradcrump($items->wpg3->parents, $items->entity->title);
+    if(isset($items->links->parents)){
+          $html .= $this->create_bradcrump($items->links->parents, $items->entity->title);
     }
 
     $html .="<h2>".$items->entity->title."</h2>";
@@ -87,25 +118,21 @@ class defaultTemplate
     return $html;
    }
 
-
-
-
-
   /* HELPER: get item as block (for the Album page) */
   private function view_itemBlock($item){
     global $wpg3_settings;
     
     $html = '';
     $html .= "<div class='block' style='display: inline-block; width: 150px; margin: 3px; background: #efefef; text-align: center; padding-top: 6px;'>";
-    //wpg3_debug($item);
+
     if ($item->entity->type == "album"){
-      $html .= '<a href="'.$wpg3_settings["scriptUrl"].'?itemid='.$item->entity->id.'">';            
+      $html .= '<a href="'.$item->links->item[0].'">';            
     }else{             
       $html .= "<a href='".$item->entity->file_url_public."' rel='lightbox[photos]' class='lightbox-enabled' title='".$item->entity->name."'>";
     }
     $html .= "<img src='".$item->entity->thumb_url_public."' />";
     $html .= "</a>";
-    $html .= '<h4><a href="'.$wpg3_settings["scriptUrl"].'?itemid='.$item->entity->id.'">'.$item->entity->name."</a></h4>";
+    $html .= '<h4><a href="'.$item->links->item[0].'">'.$item->entity->name."</a></h4>";
     /* META */
     $html .= "<div class='meta'>";
     if ($item->entity->type == "album"){

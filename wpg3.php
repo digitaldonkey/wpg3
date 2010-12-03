@@ -4,7 +4,7 @@
   Plugin URI: http://wpg3.digitaldonkey.de
   Description: Sucessor of the WPG2 Plugin Compatible to Gallery3 and WP3+ @ ALPHA-DEV
   Author URI: http://donkeymedia.eu
-  Version: 0.82
+  Version: 0.85
 */
 /**
   *   WPG3 Main
@@ -43,6 +43,10 @@
   **/
 class WPG3_Main
 { 
+ /**
+  *
+  * @var bool true/false
+ **/
   public $is_enabled = false;
   private $wpg3_options;
   /**
@@ -70,8 +74,7 @@ class WPG3_Main
  *
  *  Here goes everything that replaces the <WPG>-Tag in a Post.
  *
- *  @todo DEFINE PARAM??? --> CONTENT FILTER REGEXP
- *  @param [array] Optional array Item (
+ *  @param [array] Optional array Item 
 **/
 public function wpg3_content($g3_tag=false)
 { 
@@ -91,7 +94,6 @@ public function wpg3_content($g3_tag=false)
   *  Default is the Value chosen on the WPG3-Options Page
   *  Here we handle which REST-Item-Url we will use.
   *  e.g. $_GET['itemid'], <WPG3>-Tags, Permalinks ...
-  *  @todo Permalinks
  **/
  // that's what we'll pass to get_item()
   $get_item = array('id' => false,
@@ -101,7 +103,7 @@ public function wpg3_content($g3_tag=false)
   
   // There was a <WPGX>-Tag
   if ( is_array($g3_tag) ){
-    $get_item = $this->chec_wpg3_tag($g3_tag);
+    $get_item = $this->check_wpg3_tag($g3_tag);
   }  
   
   // $_GET Requests
@@ -114,7 +116,7 @@ public function wpg3_content($g3_tag=false)
 	
 	// Getting Items
 	$xhttp = $this->get_module_instance('WPG3_Xhttp');
-  $xhttp->clear_cache();
+  //$xhttp->clear_cache();
 
 	$items = $xhttp->get_item( $get_item );
 
@@ -179,8 +181,8 @@ public function wpg3_content($g3_tag=false)
   *   @param array $g3_tag preg_replace
   *   @return array $get_item the santized request
  **/  
-  private function chec_wpg3_tag($g3_tag)
-  {
+  private function check_wpg3_tag($g3_tag)
+  { 
     $get_item = array('id' => false,
                     'rest_uri' => $this->wpg3_options['g3Url'].$this->wpg3_options['g3Home'],
                     'width' => false,
@@ -267,7 +269,7 @@ public function wpg3_content($g3_tag=false)
   }
 
 /**
- *    WPG3 Content Callback
+ *   WPG3 Content Callback
  *   
  *   We filter post/page Content and look for WPGX Tags
  *
@@ -304,9 +306,7 @@ public function wpg3_content($g3_tag=false)
     $return = false;    
     /* Run the input check. */		
       
-    /**
-     * Tag Tester
-    **/
+    /* Tag Tester */
     if ( isset($_GET['tagtester']) ){
       $this->testTags();
       if ( isset($_POST['tags']) ){
@@ -325,7 +325,8 @@ public function wpg3_content($g3_tag=false)
   }
 
   /**
-   *  Error Message: Missing Settings
+   *  Admin Error Message: Missing Settings
+   *  
   **/
   public function no_settings_yet(){
      echo '<div class="error"><p>Please check WPG3 Options in in order to enable the Plugin.</p></div>';
@@ -334,22 +335,31 @@ public function wpg3_content($g3_tag=false)
   /**
    *   Redirection init Scripts
    *
+   *  {@source}
   **/
   public function wpg3_init(){
     if ($this->is_enabled){
       $template = $this->get_module_instance('WPG3_Template');
       $template->register_script_and_css();
+
+      if ( isset( $this->wpg3_options['g3PageId'] ) and intval ($this->wpg3_options['g3PageId']) > 0){
+        $gallerypage = $this->get_module_instance('WPG3_Rewrite');
+        $gallerypage->main_init();
+      }
     }
+
   }
-
-
   /**
    *   Options Page and Input Validation for WPG3-Modules 
    *
    *   Depends on WP-Settings Api
+   *
+   *    {@source}
+   *
   **/
   public function wpg3_admin_init()
-  {
+  { 
+    global $wp_rewrite;
     
     // MODULES register their options here
     $modules = array($this->get_module() );
@@ -360,17 +370,14 @@ public function wpg3_content($g3_tag=false)
 
       $template = $this->get_module_instance('WPG3_Template');
       array_push($modules, $template->admin_init() );
-      
+      /*
       $imagechoser = $this->get_module_instance('WPG3_Imagechoser');
       array_push($modules, $imagechoser->admin_init() );
-
-      $gallerypage = $this->get_module_instance('WPG3_Rewrite');
-      array_push($modules, $gallerypage->admin_init() );
-      /*
-      echo "<pre>\n";
-      print_r ( $this->wpg3_options );
-      echo "</pre>";
       */
+      if ( $wp_rewrite->using_permalinks() ){
+        $gallerypage = $this->get_module_instance('WPG3_Rewrite');
+        array_push($modules, $gallerypage->admin_init() );
+      }
     }
     
     register_setting(
@@ -384,9 +391,7 @@ public function wpg3_content($g3_tag=false)
     if (!function_exists('add_settings_section')){
       require_once(ABSPATH.'wp-admin/includes/template.php');
     }
-    /**
-      * stores validation functions
-     **/
+    /* stores validation functions */
     $this->validate_fields = array();
     //  setting Option sections and fields
     foreach( $modules as $module){
@@ -404,15 +409,21 @@ public function wpg3_content($g3_tag=false)
 
 /**
   *   get a module instance, load if required
+  *
+  *   {@source}
+  *
   *   @param string Classname
   *   @return object instance
  **/ 
-  public function get_module_instance($module){
+  public function get_module_instance($module, $override_options = false){
     $return = false;
-    if (isset($this->modules[$module]) ){
+    if (isset($this->modules[$module]) and !$override_options){
       $return = $this->modules[$module];
     }else{
-      $this->__autoload( $module );
+      if (! isset($this->modules[$module])) $this->__autoload( $module );
+      if ( $override_options){
+        $this->wpg3_options = $override_options;
+      }
       $instance = new $module( $this->wpg3_options );
       $this->modules[$module] = $instance;
       $return = $instance;
@@ -520,12 +531,6 @@ public function wpg3_content($g3_tag=false)
     
     <p>  
        You must enable REST-Module in Gallery3 in Order to use WPG3.
-       <br /> For now it is also necessary to set <strong>allow_guest_access = 1</strong> in the 
-       extended settings of your Gallery.
-    </p>
-    <p>       
-       To check if you can use G3-Rest by placing e.g. <strong><pre>http://yourdomain.com/gallery3/index.php/rest/item/1?output=html</pre></strong>
-       in you browser Adress Field. It should show you some json data.<br /> In this example your Gallery3 Url would be: <strong><pre>http://yourdomain.com/gallery3/index.php</pre></strong>.
     </p>
     </div>
 
@@ -567,7 +572,7 @@ public function wpg3_content($g3_tag=false)
   
 
 /**
- *  Options Page Validation for "g3Resize"
+ *  Validation Page Validation for "g3Resize"
  *
 **/
   public function admin_options_section_validate_g3Resize($field_val)
@@ -606,7 +611,7 @@ public function wpg3_content($g3_tag=false)
   }
 
 /**
- *  Options Page Validation for "field1"
+ *  Validate field "restReqestKey"
  *
  *  @todo validate g3Url against REST
 **/
@@ -616,6 +621,8 @@ public function wpg3_content($g3_tag=false)
     // validate input
     if ( preg_match('#^http\\:\\/\\/[a-z0-9\-]+\.([a-z0-9\-]+\.)?[a-z]+#i', $field_val)){
         if( substr( $field_val, -1 ) === "/" ) $field_val = substr ( $field_val, 0 , -1 );
+        // unset REST API Key
+        unset($this->wpg3_options['restReqestKey']);
         $return = $field_val;
     }else{
       // create a nice Error including you field_id
@@ -629,12 +636,20 @@ public function wpg3_content($g3_tag=false)
 
 
 
-private function __autoload($class_name) {
+  private function __autoload($class_name) {
     include 'wpg3_class_'.$class_name . '.php';    
   }
+/**
+ *  Get WPG3 Options
+ *  @return array wpg3_options
+**/
 	public function get_options() {
     return $this->wpg3_options;
   }
+/**
+ *  WPG3 enabled?
+ *  @return bool true/false
+**/
   public function is_enabled($type){
     $return = false;
     if (isset($this->wpg3_options[$type]) and $this->wpg3_options[$type] == "enabled") $return = true;
