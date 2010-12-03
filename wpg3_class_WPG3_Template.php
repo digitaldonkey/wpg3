@@ -253,6 +253,8 @@ private function getAllFiles($directory, $recursive = true) {
 **/
   public function register_script_and_css(){
     global $wp_styles, $wp_scripts;
+    wp_enqueue_script('jquery');
+
     foreach ($this->templates as $template){
       // enque scripts
       if (isset($template['script']) ){
