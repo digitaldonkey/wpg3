@@ -143,6 +143,30 @@ body{
   min-height: 100px;
   margin-right: 15px;
 }
+
 .metaBlock  {
   /*border: 1px dotted green;*/
+}
+
+
+hr.clear{
+  border: none;
+  clear: both;
+}
+
+
+/* INSERT/EDIT form */
+p.label{
+  display: block;
+  float: left;
+  width: 150px;
+  clear: both;
+  margin-top: 0;
+  font-weight: bold;
+}
+label.align{
+  display: inline;
+  padding-left: 22px;
+  margin-right: 1em;
+  font-weight: bold;
 }

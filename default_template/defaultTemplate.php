@@ -34,19 +34,27 @@ class defaultTemplate
   
   private $templates = array(
     array(
-    'name'  => 'Default Photo Template',
+    'name'  => 'Full Photo Template',
     'type'  => 'photo',
-    'method'=> 'default_photo',
-    //'script'=>  $default_css,
-    //'css'=>     $default_js
+    'method'=> 'full_photo',
     ),
     array(
-    'name'  => 'Default Album Template',
+    'name'  => 'Full Album Template',
     'type'  => 'album',
-    'method'=> 'default_album',
-    //'script'=>  $default_css,
-    //'css'=>     $default_js
+    'method'=> 'full_album',
     ),
+    array(
+    'name'  => 'Inline Photo Template',
+    'type'  => 'photo',
+    'method'=> 'inline_photo',
+    'features' => array('link', 'align','size', 'caption'),
+    ),
+    array(
+    'name'  => 'Inline Album Template',
+    'type'  => 'album',
+    'method'=> 'inline_album',
+    'features' => array('link', 'align','size', 'caption'),
+    )
   );
  /**
   *   register the templates
@@ -60,23 +68,25 @@ class defaultTemplate
     }
     return $this->templates;
   }
-  /**
-   *  PHOTO TEMPLATE
-   *
-   *  Any Template should return the HTML output
-   *  Templates for single elements (e.g. photo, movie) will get one Item
-   *
-   *   {@source}
-   *
-   *  @param object item 
-   *  @param int Width. This is passed by the WPG3-Tag
-  **/
-  public function default_photo($item, $width=false){
-    $html ='';
+  
+  
+/**
+ *  Full Photo Template
+ *
+ *  Any Template should return the HTML output
+ *  Templates for single elements (e.g. photo, movie) will get one Item
+ *
+ *   {@source}
+ *
+ *  @param object item 
+ *  @param int Width. This is passed by the WPG3-Tag
+**/
+  public function full_photo($item, $width=false){
+    $html ='<div class="gallery">';
     // $width = WPGX-Tag Width value or false if not set
     //$html .= $width;
     if ($this->show_available_data){
-      $html .= '<pre>'.print_r($item, true).'</pre>';
+      $html .= '<pre>ITEM:<br />'.print_r($item, true).'<br/>WIDTH:<br />'.print_r($width, true).'</pre>';
     }
     //
     if(isset($item->links->parents)){
@@ -86,25 +96,86 @@ class defaultTemplate
     $html .="<h2>".$item->entity->title."</h2>";
     $html .= "<a href='".$item->entity->file_url_public."'><img src='".$item->entity->resize_url_public."' /></a>";
 	  $html .=  $this->wpg3_view_get_desc($item);
+	  $html .=  '</div><div class="clear"></div>';
+
     return $html;
   }
-  
-  
-  /**
-   *  ALBUM TEMPLATE
-   *
-   *  Any Template should return the HTML output
-   *  Album Templates will will get a array withe the template and Subitems at Members
-   *
-   *   {@source}
-   *   
-   *  @param object items with children
-   *  @param int Width. This is passed by the WPG3-Tag
-  **/
-  public function default_album($items, $width=false){    
-    $html ='';
+
+/**
+ *   Inline Photo Template
+ *
+ *  Any Template should return the HTML output
+ *  Templates for single elements (e.g. photo, movie) for Inline/float Block
+ *
+ *   {@source}
+ *
+ *  @param object item 
+ *  @param array extras (e.g. array('link' => 'http: //...', 'width' => int, 'align' => string )
+**/
+  public function inline_photo($item, $width=false){
+    $html ='<div class="gallery">';
+    // $width['width'] = WPGX-Tag Width value or false if not set
     if ($this->show_available_data){
-      $html .= '<pre style="font-size: small; line-height: 85%;"> Available for Photo Template:<br />'.print_r($items, true).'</pre>';
+      $html .= '<pre>ITEM:<br />'.print_r($item, true).'<br/>WIDTH:<br />'.print_r($width, true).'</pre>';
+    }
+    //
+    if(isset($item->links->parents)){
+          $html .= $this->create_bradcrump($item->links->parents , $item->entity->title);
+    }
+
+    $html .="<h2>".$item->entity->title."</h2>";
+    $html .= "<a href='".$item->entity->file_url_public."'><img src='".$item->entity->resize_url_public."' /></a>";
+	  $html .=  $this->wpg3_view_get_desc($item);
+	  $html .=  "</div>";
+    return $html;
+  }  
+
+
+/**
+ *   Inline Album Template
+ *
+ *  Any Template should return the HTML output
+ *  Templates for single elements (e.g. photo, movie) for Inline/float Block
+ *
+ *   {@source}
+ *
+ *  @param object item 
+ *  @param array extras (e.g. array('link' => 'http: //...', 'width' => int, 'align' => string )
+**/
+  public function inline_album($item, $width=false){
+    $html ='<div class="gallery">';
+    // $width = WPGX-Tag Width value or false if not set
+    //$html .= $width;
+    if ($this->show_available_data){
+      $html .= '<pre>ITEM:<br />'.print_r($item, true).'<br/>WIDTH:<br />'.print_r($width, true).'</pre>';
+    }
+    //
+    if(isset($item->links->parents)){
+          $html .= $this->create_bradcrump($item->links->parents , $item->entity->title);
+    }
+
+    $html .="<h2>".$item->entity->title."</h2>";
+    $html .= "<a href='".$item->entity->file_url_public."'><img src='".$item->entity->resize_url_public."' /></a>";
+	  $html .=  $this->wpg3_view_get_desc($item);
+	  $html .=  "</div>";
+    return $html;
+  } 
+  
+/**
+ *  Full Album Template 
+ *
+ *  Any Template should return the HTML output
+ *  Album Templates will will get a array withe the template and Subitems at Members
+ *
+ *   {@source}
+ *   
+ *  @param object items with children
+ *  @param int Width. This is passed by the WPG3-Tag
+**/
+  public function full_album($items, $width=false){    
+    $html ='<div class="gallery">';
+    if ($this->show_available_data){
+      $html .= '<pre>ITEM:<br />'.print_r($items, true).'<br/>WIDTH:<br />'.print_r($width, true).'</pre>';
     }
     if(isset($items->links->parents)){
           $html .= $this->create_bradcrump($items->links->parents, $items->entity->title);
@@ -119,6 +190,7 @@ class defaultTemplate
       }
     }
     $html .= "</div>";
+	  $html .=  '</div><div class="clear"></div>';
     
     return $html;
    }

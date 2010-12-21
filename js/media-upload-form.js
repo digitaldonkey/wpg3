@@ -4,7 +4,7 @@ jQuery(document).ready(function() {
   var album_info = jQuery('#media-album-info');
 
   /* start with the root Album */
-  getData(url+'1');
+  getData(imagechoser_options.url+'1');
 
   function getData(url){
   // cancel previous requests
@@ -29,9 +29,8 @@ jQuery(document).ready(function() {
     + '<a class="toggle describe-toggle-off" href="#" rel="' + item.entity.id + '">X<\/a>'           
     + '<a class="open_album_parent toggle" href="#" rel="' + item.entity.parent + '"> <\/a>'
       +'<div class="slidetoggle describe startclosed" id="item-' + item.entity.id + '">'
-      + wpg3_view_metaBlock( item )
-      + '<\/div>'
-    + '<\/div>' 
+      + image_edit_block( item )
+    + '<\/div>'
     );
     
     jQuery.each(item.members, function(i,child_item){
@@ -46,7 +45,7 @@ jQuery(document).ready(function() {
   
   
   
-  /* HELPER?? */
+  /* Display Helper */
   
   jQuery('.describe-toggle-on').live('click', function(e){
     var item_id = jQuery(this).attr('rel');
@@ -67,9 +66,43 @@ jQuery(document).ready(function() {
   jQuery('.open_album').live('click', function(e){
     var album = jQuery(this).attr('rel');
     jQuery('#media-items').children().remove();
-    getData(url+album);
+    getData(imagechoser_options.url+album);
     return false;
   });
+ 
+ /* send action */
+ jQuery('.send_button').live('click', function(e){
+    var item = jQuery(this).attr('id');
+     alert ( item );
+    return false;
+  });
+  
+ /* toggle available template Features */
+ jQuery('.templateSelector').live('change', function(e){
+    var item_id = jQuery(this).parent('.item_block').attr('id').substr('g3-edit-item-'.length);
+    var item_type = jQuery(this).parent('.item_block').attr('rel');
+    var template_id = jQuery( '#templateSelector-'+item_id).val();
+    var templates = eval ('imagechoser_options.templates.'+item_type+'.'+template_id);
+
+
+    jQuery('#g3-edit-item-'+item_id+' .feature').addClass('hidden');
+   if (templates.features ){
+      jQuery.each(templates.features, function(){
+        var this_feature = jQuery('#g3-edit-item-'+item_id).children('.feature-'+this);
+        // only till we implement them all ..
+        if (this_feature.length){
+          this_feature.removeClass('hidden');
+        }
+      });
+   }
+   
+     //alert (imagechoser_options.g3Resize.max_thumb);
+     //alert (imagechoser_options.g3Resize.max_resize);
+
+   
+    return false;
+  });
+  
   
   
   
@@ -98,27 +131,6 @@ jQuery(document).ready(function() {
   
   
   }); /* END document ready */
-  
-  
- /**
-  *  Meta-Block 
-  *
-  *   @todo Hover on image should show Midsize if available
-  *   @param object item
- **/
- function wpg3_view_metaBlock( item ){
-  var block = '<div class="thumbBlock">'
-              + '<a href="#" class="hover"> <img class="thumbnail"  src="'+item.entity.thumb_url_public+'" alt=""  height="' + item.entity.thumb_height + '" width="' + item.entity.thumb_width + '" \/><\/a>'
-            + '<\/div>'
-            +'<div class="metaBlock" >'
-            //+ '<p><strong>Title:<\/strong> ' + item.entity.title + '<\/p>'
-              + '<p><strong>Type:<\/strong> ' + item.entity.type + '<\/p>'
-              + '<p><strong>Created:<\/strong> ' + date( wpg3_date_format , item.entity.created) + '<\/p>'
-              + '<p><strong>Updated:<\/strong> ' + date( wpg3_date_format , item.entity.updated)  + '<\/p>'
-              + wpg3_view_templateSelector( imagechoser_options.templates , item )
-            + '<\/div>';
-  return block;
-}
 
  
  /**
@@ -140,8 +152,102 @@ function wpg3_view_toggleHeader( item ){
               block += '<a class="toggle open_album " href="#" rel="' + item.entity.id + '"><\/a>';
            }
      block += '<div class="slidetoggle describe startclosed" id="item-' + item.entity.id + '">'
-           + wpg3_view_metaBlock( item );
-           + wpg3_view_templateSelector( imagechoser_options.templates , item )
+           + image_edit_block( item )
+           + '<\/div>';
+  return block;
+}
+
+
+ /**
+  *  Insert/Edit-Block 
+  *
+  *   @todo Album Cover entity width for resizes !
+  *   @param object item
+ **/
+function image_edit_block( item ){
+  var html = '<div class="item_block" id="g3-edit-item-' + item.entity.id + '" rel="'+item.entity.type+'">'
+
+  + wpg3_view_metaBlock( item )
+  + '<hr class="clear" \/>'
+
+
+
+  + '<div class="feature feature-link hidden">'
+  + '<p class="label">Link URL<\/p>'
+  +  '<div style="margin-left: 150px;">'
+  + '<input type="text" class="text urlfield" style="width: auto;" size="50" name="pickerUrl" id="pickerUrl" value="" /><br />'
+  + '<button type="button" class="urlButtonEmpty" class="button urlnone" onclick="buttonToField(this,"pickerUrl");" title="">None</button>'
+  + '<button type="button" class="urlButtonGallery" class="button urlfile" onclick="buttonToField(this,"pickerUrl");" title="">Gallery page</button>'
+  + '<button type="button" class="urlButtonPost" class="button urlpost" onclick="buttonToField(this,"pickerUrl");" title="PERMALINK IF PAGE AVAILABLE">Image Url / Lightbox</button>'
+  + '<p class="help">Enter a link URL or click above for presets.</p>'
+  + '<\/div>'
+  + '<\/div>'
+
+
+  + '<div class="feature feature-align hidden">'
+  + '<p class="label">Alignment<\/p>'
+  + '<input type="radio" name="align" class="image-align-none" value="alignnone" checked="checked" /><label for="image-align-none" class="align image-align-none-label">None</label>'
+  + '<input type="radio" name="align" class="image-align-left" value="alignleft" /><label for="image-align-left" class="align image-align-left-label">Left</label>'
+  + '<input type="radio" name="align" class="image-align-center" value="aligncenter" /><label for="image-align-center" class="align image-align-center-label">Center</label>'
+  + '<input type="radio" name="align" class="image-align-right" value="alignright" /><label for="image-align-right" class="align image-align-right-label">Right</label>'
+  + '<\/div>'
+
+  + '<div class="feature feature-size hidden">'
+  + '<p class="label">Size<\/p>'
+  + '<input name="size" id="image-size-thumb-' + item.entity.id + '" checked="checked" value="thumb" type="radio"><label for="image-size-thumb-' + item.entity.id + '">Thumbnail <\/label> <label for="image-size-thumb-' + item.entity.id + '" class="help">(' + item.entity.thumb_width + 'px)<\/label>'
+  + '<input name="size" id="image-size-resize-' + item.entity.id + '" value="resize" type="radio"><label for="image-size-resize-' + item.entity.id + '">Medium<\/label> <label for="image-size-resize-' + item.entity.id + '" class="help">(' + item.entity.resize_width + 'px)<\/label>'
+  + '<input name="size" id="image-size-full-' + item.entity.id + '" value="full" type="radio"><label for="image-size-full-' + item.entity.id + '">Full Size<\/label> <label for="image-size-full-' + item.entity.id + '" class="help">(' + item.entity.width + 'px)<\/label>'
+  + '<br \/>'
+  + 'Custom width <input type="text" class="custom-resize" style="width: auto;" size="4" name="custom-resize" id="custom-resize" value="" />px'
+  + '<\/div>'
+
+  +  wpg3_view_templateSelector( imagechoser_options.templates , item )
+  
+  + '<hr class="clear" \/>'
+  + '<input type="button" class="button send_button" id="'+item.entity.id +'" name="send" value="Insert into Post" />'
+  
+  + '<\/div>';
+  
+  return html;
+}
+
+
+ /**
+  *   Editable Fields 
+  *
+  *   @todo Hover on image should show Midsize if available
+  *   @param object item
+ **/
+ function wpg3_edit_fields_block( item ){
+  var html = '<div class="edit_fields_block">'
+  
+  
+ 
+ 
+ 
+  + '<\/div>';
+  
+  return html;
+ }
+
+
+ /**
+  *  Meta-Block 
+  *
+  *   @todo Hover on image should show Midsize if available
+  *   @param object item
+ **/
+ function wpg3_view_metaBlock( item ){
+  var block = '<div class="thumbBlock">'
+              + '<a href="#" class="hover"> <img class="thumbnail"  src="'+item.entity.thumb_url_public+'" alt=""  height="' + item.entity.thumb_height + '" width="' + item.entity.thumb_width + '" \/><\/a>'
+            + '<\/div>'
+            +'<div class="metaBlock" >'
+            //+ '<p><strong>Title:<\/strong> ' + item.entity.title + '<\/p>'
+              + '<p><strong>Type:<\/strong> ' + item.entity.type + '<\/p>'
+              + '<p><strong>Created:<\/strong> ' + date( imagechoser_options.wpg3_date_format , item.entity.created) + '<\/p>'
+              + '<p><strong>Updated:<\/strong> ' + date( imagechoser_options.wpg3_date_format , item.entity.updated)  + '<\/p>'
+              + '<\/div>';
+
   return block;
 }
 
@@ -156,9 +262,9 @@ function wpg3_view_templateSelector( templates, item ){
     
    var availableTemplates = eval ('templates.'+item.entity.type);
 
-   var html = '<div class="templateSelector" >'
-            + '<p><strong>Select a Template<\/strong><\/p>'
-            + '<select>';
+   var html = '<div class="templateSelector">'
+            + '<p class="label">Select a Template<\/p>'
+            + '<select  id="templateSelector-'+item.entity.id+'">';
              
        jQuery.each( availableTemplates, function(){
           html += '<option value="'+ this.id +'">'
@@ -168,6 +274,18 @@ function wpg3_view_templateSelector( templates, item ){
        
        html +='<\/select>'          
             + '<\/div>';
+
+       html +='<div>'          
+       /*
+       jQuery.each( availableTemplates, function(){
+                if ( ! this.features == 'undefined' ){
+                  html += '<p value="'+ this.id +'">'
+                     + this.features
+                     + '<\/p>' ;
+                }     
+       });
+       */
+       html + '<\/div>'          
 
     return html;
 }

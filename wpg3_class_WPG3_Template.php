@@ -86,7 +86,7 @@ class WPG3_Template{
     if ( ! $myTemplateId ){
       $supported_item_types = array( 'photo', 'album' );
       if ( in_array($data->entity->type , $supported_item_types ) ){
-        $myTemplateId = 'defaultTemplate_default_'.$data->entity->type;
+        $myTemplateId = 'defaultTemplate_full_'.$data->entity->type;
       }else{
         wp_die("Unsuported Item type @ defaultTemplate<br /> Currently supported: <em>".implode($supported_item_types, ', ').'</em>' );
       }
@@ -99,7 +99,7 @@ class WPG3_Template{
         }
     }
  
-    $html = '<div class="gallery">';
+    $html = '';
 
     /* found a template? is it includable? */
     if(!is_array($myTemplate) or !is_file( $myTemplate['file']) or !is_readable($myTemplate['file']) ){
@@ -114,8 +114,6 @@ class WPG3_Template{
     isset($get_item['int_width']) ? $width = $get_item['int_width'] : $width = false;
     $html .= $obj->{$myTemplate['method']}($data, $width );
     
-    $html .= '</div>';
-
     if (empty($html)){
        $return = false;
     }
@@ -135,7 +133,7 @@ class WPG3_Template{
     $return = array();
     foreach($templates as $key => $val){
       if($val['type'] === $type){
-        array_push($return, $val );
+        $return[$val['id']] = $val ;
       }
     }
     if (empty($return)){
@@ -281,7 +279,7 @@ private function getAllFiles($directory, $recursive = true) {
 
 /**
  *  Reads all Template files and add template Objects to the database
- *  @todo changeable Template Directory
+ *  @todo update Template Dir only if it is set Template Directory
  *  @todo: we should add some errors when we fail reading the file or classes
  *  @todo return error 
  *  @return: debug-output on Sucess (and an Error @todo)

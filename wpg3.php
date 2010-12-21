@@ -54,7 +54,7 @@ class WPG3_Main
     *  use: get_module($classname);
    **/
   private $modules;
-  private $debug = false;
+  private $debug = true;
   /**
    *   Load wpg3_options 
    *  
@@ -67,6 +67,88 @@ class WPG3_Main
     }else{
       add_action('admin_notices', array( $this , 'no_settings_yet') );
     }
+}
+
+/**
+ *   Redirection init Scripts
+ *
+ *  {@source}
+**/
+  public function wpg3_init(){
+    if ($this->is_enabled){
+      $template = $this->get_module_instance('WPG3_Template');
+      $template->register_script_and_css();
+
+      if ( isset( $this->wpg3_options['g3PageId'] ) and intval ($this->wpg3_options['g3PageId']) > 0){
+        $gallerypage = $this->get_module_instance('WPG3_Rewrite');
+        $gallerypage->main_init();
+      }
+    }
+
+  }
+  /**
+   *   Options Page and Input Validation for WPG3-Modules 
+   *
+   *   Depends on WP-Settings Api
+   *
+   *    {@source}
+   *
+  **/
+  public function wpg3_admin_init()
+  { 
+    global $wp_rewrite;
+    
+    // MODULES register their options here
+    $modules = array($this->get_module() );
+    if($this->is_enabled){
+
+      $xhttp = $this->get_module_instance('WPG3_Xhttp');
+      array_push($modules, $xhttp->admin_init() );
+
+      $template = $this->get_module_instance('WPG3_Template');
+      array_push($modules, $template->admin_init() );
+
+      $imagechoser = $this->get_module_instance('WPG3_Imagechoser');
+      array_push($modules, $imagechoser->admin_init() );
+
+      if ( $wp_rewrite->using_permalinks() ){
+        $gallerypage = $this->get_module_instance('WPG3_Rewrite');
+        array_push($modules, $gallerypage->admin_init() );
+      }
+    }
+    
+    register_setting(
+      'wpg3_options_grp', // settings group
+      'wpg3_options', // settings
+      array(&$this,'admin_validate_options') // fn to validate input
+      );
+    $page = 'wpg3_options_page';
+        
+    // load Settings API
+    if (!function_exists('add_settings_section')){
+      require_once(ABSPATH.'wp-admin/includes/template.php');
+    }
+    /* stores validation functions */
+    $this->validate_fields = array();
+    //  setting Option sections and fields
+    foreach( $modules as $module){
+      if ( $module ){
+        add_settings_section( $module['unique_name'], $module['title'], $module['function'], $page);
+        if( isset($module['settings_fields']) ){
+          foreach($module['settings_fields'] as $field){
+           add_settings_field($field['field_id'], $field['field_title'], $field['field_display'], $page, $module['unique_name']);
+           if( isset($field['field_validate']) )$this->validate_fields[ $field['field_id'] ] = $field['field_validate'];
+          }
+        }
+      }
+    }  
+  }
+
+
+private function clear_caches(){
+
+  
+
 }
 
 /**
@@ -128,53 +210,6 @@ public function wpg3_content($g3_tag=false)
   if($this->debug) echo '<div style="border: 1px dotted red;">WPG3 main script time: '.round( (microtime(true) - $start) , 4)." sec.</div>";
 }
 
-  /**
-   * <WPG3>-Tag Tester
-   *
-  **/  
-  private function testTags()
-  { if (!$this->debug) return;
-    
-    global $_POST, $_SERVER;
-    
-    $testtags = array(
-      // [id|rel.path|REST.path] 
-      '<wpg3>13</wpg3>',
-      '<wpg3>item/1</wpg3>',
-      '<wpg3>item/10</wpg3>',
-      '<wpg3>http://wpg3.local/gallery3/index.php/rest/item/63</wpg3>',
-      
-      // [id|rel.path|REST.path] [ | [int.width|str.[] ] ]
-      '<wpg3>13|200</wpg3>',
-      '<wpg3>item/1|300</wpg3>',
-      '<wpg3>item/10|400</wpg3>',
-      '<wpg3>http://wpg3.local/gallery3/index.php/rest/item/6|600</wpg3>',
-      '<wpg3>item/1|thumb</wpg3>',
-      '<wpg3>item/1|thumbnail</wpg3>',
-      '<wpg3>item/10|resize</wpg3>',
-      '<wpg3>http://wpg3.local/gallery3/index.php/rest/item/63|medium</wpg3>',
-      '<wpg3>item/1|full</wpg3>',
-      '<wpg3>item/10|large</wpg3>',
-      
-      // [id|rel.path|REST.path]  [ | [int.width|str.[] ] [ | [int.width|str.[] ] ]]
-      '<wpg3>13|200|defaultTemplate_default_photo</wpg3>',
-      '<wpg3>item/1|300|defaultTemplate_default_album</wpg3>',
-      '<wpg3>item/1|300|defaultTemplate_default_photo</wpg3>'
-    );
-
-    echo '<form action="'.$_SERVER['PHP_SELF'].'?tagtester" method="post" onchange="this.submit()">'."\n";    
-    echo '<select name="tags">'."\n";
-    foreach ($testtags as $tag)
-      { 
-        $sel ="";
-        if ($_POST['tags'] == $tag) $sel = ' selected="selected" ';
-        echo '<option '.$sel.' value="'.$tag.'">'.htmlentities($tag)."</option>\n";
-      }
-    echo '</select>'."\n";
-    echo '</form>'."\n";
-  
-  }
-  
  /**
   *   Validate the <WPGX> Tag
   *
@@ -259,10 +294,24 @@ public function wpg3_content($g3_tag=false)
     }
     
     // check for  str.template.id
-    if ( isset($g3_tag[3]) and is_string($g3_tag[3]) ){
+    if ( isset($g3_tag[3]) and is_string($g3_tag[3]) ){    
       $tpl = $this->get_module_instance('WPG3_Template');
       if (in_array ( $g3_tag[3] , $tpl->get_template_ids() , true ) ){
         $get_item['template'] = $g3_tag[3];
+      }
+    }
+    // check for  json.features
+    if ( isset($g3_tag[4]) and is_string($g3_tag[4]) ){   
+      
+      
+      $decoded_array = json_decode(base64_decode( $g3_tag[4] ));
+      echo "<pre>\$decoded_array\n";
+      print_r ( $decoded_array );
+      echo "</pre>";
+      
+      
+      if ( $decoded_array != 'NULL' ){      
+        $get_item['features'] = $decoded_array;
       }
     }
     return $get_item;
@@ -307,6 +356,7 @@ public function wpg3_content($g3_tag=false)
     /* Run the input check. */		
       
     /* Tag Tester */
+    
     if ( isset($_GET['tagtester']) ){
       $this->testTags();
       if ( isset($_POST['tags']) ){
@@ -319,7 +369,10 @@ public function wpg3_content($g3_tag=false)
     if(false === stripos($content, '<wpg') and !$templateTag) {
       $return = $content;
     }else{
-      $return = preg_replace_callback('/<wpg[23]>([^\|]*)[\|]?([^\|]*)[\|]?(.*)<\/wpg[23]>/i', array( $this, 'wpg3_content' ), $content );
+      // without features
+      //$return = preg_replace_callback('/<wpg[23]>([^\|]*)[\|]?([^\|]*)[\|]?(.*)<\/wpg[23]>/i', array( $this, 'wpg3_content' ), $content );
+      //with features ??
+      $return = preg_replace_callback('/<wpg[23]>([^\|]*)[\|]?([^\|]*)[\|]?([^\|]*)[\|]?(.*)<\/wpg[23]>/i', array( $this, 'wpg3_content' ), $content );
    }   
     return $return;
   }
@@ -330,81 +383,6 @@ public function wpg3_content($g3_tag=false)
   **/
   public function no_settings_yet(){
      echo '<div class="error"><p>Please check WPG3 Options in in order to enable the Plugin.</p></div>';
-  }
-
-  /**
-   *   Redirection init Scripts
-   *
-   *  {@source}
-  **/
-  public function wpg3_init(){
-    if ($this->is_enabled){
-      $template = $this->get_module_instance('WPG3_Template');
-      $template->register_script_and_css();
-
-      if ( isset( $this->wpg3_options['g3PageId'] ) and intval ($this->wpg3_options['g3PageId']) > 0){
-        $gallerypage = $this->get_module_instance('WPG3_Rewrite');
-        $gallerypage->main_init();
-      }
-    }
-
-  }
-  /**
-   *   Options Page and Input Validation for WPG3-Modules 
-   *
-   *   Depends on WP-Settings Api
-   *
-   *    {@source}
-   *
-  **/
-  public function wpg3_admin_init()
-  { 
-    global $wp_rewrite;
-    
-    // MODULES register their options here
-    $modules = array($this->get_module() );
-    if($this->is_enabled){
-
-      $xhttp = $this->get_module_instance('WPG3_Xhttp');
-      array_push($modules, $xhttp->admin_init() );
-
-      $template = $this->get_module_instance('WPG3_Template');
-      array_push($modules, $template->admin_init() );
-      /*
-      $imagechoser = $this->get_module_instance('WPG3_Imagechoser');
-      array_push($modules, $imagechoser->admin_init() );
-      */
-      if ( $wp_rewrite->using_permalinks() ){
-        $gallerypage = $this->get_module_instance('WPG3_Rewrite');
-        array_push($modules, $gallerypage->admin_init() );
-      }
-    }
-    
-    register_setting(
-      'wpg3_options_grp', // settings group
-      'wpg3_options', // settings
-      array(&$this,'admin_validate_options') // fn to validate input
-      );
-    $page = 'wpg3_options_page';
-        
-    // load Settings API
-    if (!function_exists('add_settings_section')){
-      require_once(ABSPATH.'wp-admin/includes/template.php');
-    }
-    /* stores validation functions */
-    $this->validate_fields = array();
-    //  setting Option sections and fields
-    foreach( $modules as $module){
-      if ( $module ){
-        add_settings_section( $module['unique_name'], $module['title'], $module['function'], $page);
-        if( isset($module['settings_fields']) ){
-          foreach($module['settings_fields'] as $field){
-           add_settings_field($field['field_id'], $field['field_title'], $field['field_display'], $page, $module['unique_name']);
-           if( isset($field['field_validate']) )$this->validate_fields[ $field['field_id'] ] = $field['field_validate'];
-          }
-        }
-      }
-    }  
   }
 
 /**
@@ -537,7 +515,6 @@ public function wpg3_content($g3_tag=false)
 <?php }
 
 
-
 /**
  *  Options Page Output for "g3Resize"
  *
@@ -633,12 +610,14 @@ public function wpg3_content($g3_tag=false)
     return $return;
   }
 
-
-
-
+/**
+ *  Include a class
+ *  @param string Class name
+**/
   private function __autoload($class_name) {
     include 'wpg3_class_'.$class_name . '.php';    
   }
+  
 /**
  *  Get WPG3 Options
  *  @return array wpg3_options
@@ -646,6 +625,7 @@ public function wpg3_content($g3_tag=false)
 	public function get_options() {
     return $this->wpg3_options;
   }
+  
 /**
  *  WPG3 enabled?
  *  @return bool true/false
@@ -656,12 +636,65 @@ public function wpg3_content($g3_tag=false)
     return $return;
   }
 
+/**
+ *  <WPG3>-Tag Tester
+ *  Just for Debug
+**/  
+  private function testTags()
+  { if (!$this->debug) return;
+    
+    global $_POST, $_SERVER;
+    
+    $testtags = array(
+      // [id|rel.path|REST.path] 
+      '<wpg3>13</wpg3>',
+      '<wpg3>item/1</wpg3>',
+      '<wpg3>item/10</wpg3>',
+      '<wpg3>http://wpg3.local/gallery3/index.php/rest/item/63</wpg3>',
+      
+      // [id|rel.path|REST.path] [ | [int.width|str.[] ] ]
+      '<wpg3>13|200</wpg3>',
+      '<wpg3>item/1|300</wpg3>',
+      '<wpg3>item/10|400</wpg3>',
+      '<wpg3>http://wpg3.local/gallery3/index.php/rest/item/6|600</wpg3>',
+      '<wpg3>item/1|thumb</wpg3>',
+      '<wpg3>item/1|thumbnail</wpg3>',
+      '<wpg3>item/10|resize</wpg3>',
+      '<wpg3>http://wpg3.local/gallery3/index.php/rest/item/63|medium</wpg3>',
+      '<wpg3>item/1|full</wpg3>',
+      '<wpg3>item/10|large</wpg3>',
+      
+      // [id|rel.path|REST.path]  [ | [int.width|str.[] ] [ | [int.width|str.[] ] ]]
+      '<wpg3>13|200|defaultTemplate_defaultPhoto</wpg3>',
+      '<wpg3>item/1|300|defaultTemplate_full_album</wpg3>',
+      '<wpg3>item/1|300|defaultTemplate_full_photo</wpg3>',
+      '<wpg3>item/1|300|defaultTemplate_inline_photo</wpg3>',
+      '<wpg3>item/10|300|defaultTemplate_inline_album</wpg3>',
+      
+      // [id|rel.path|REST.path]  [ | [int.width|str.[] ] [ | [int.width|str.[] ]  [ | [str: json-encoded features ]]]
+      '<wpg3>item/10|300|defaultTemplate_inline_album|bla</wpg3>',
+      '<wpg3>item/10|300|defaultTemplate_inline_album|'. base64_encode(json_encode(array('link'=>'http://digitaldonkey.de', 'align'=>'left', 'caption' => 'Some nice Caption!'))).'</wpg3>'
+    );
+
+    echo '<form action="'.$_SERVER['PHP_SELF'].'?tagtester" method="post" onchange="this.submit()">'."\n";    
+    echo '<select name="tags">'."\n";
+    foreach ($testtags as $tag)
+      { 
+        $sel ="";
+        if ($_POST['tags'] == $tag) $sel = ' selected="selected" ';
+        echo '<option '.$sel.' value="'.$tag.'">'.htmlentities($tag)."</option>\n";
+      }
+    echo '</select>'."\n";
+    echo '</form>'."\n";
+  
+  }
+  
 }// END class WPG3_Main
 
 	add_action('init', array(&$wpg3, 'wpg3_init') );
 	add_action('admin_init', array(&$wpg3, 'wpg3_admin_init') );
-   /* Add options Page */
-    add_action('admin_menu', array(&$wpg3, 'admin_add_page') );
+ /* Options Page */
+  add_action('admin_menu', array(&$wpg3, 'admin_add_page') );
   if($wpg3->is_enabled){
     add_filter('the_content', array(&$wpg3, 'wpg3_content_callback') ); 
  }

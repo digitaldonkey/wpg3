@@ -25,7 +25,7 @@ class WPG3_Imagechoser
 
 
 /**
- *  Register Options and Admin Init filter
+ *  Register Options and Main Init filter
  *
 **/
 public function main_init()
@@ -45,7 +45,7 @@ public function admin_init()
     add_action('media_upload_tabs', array(&$this, 'imagechoser_tab') );
     
     /* Add gallery3 Media Library Form */
-    add_action   ('media_upload_wpg3',  array(&$this,'imagechoser_media_browser') );
+    add_action   ('media_upload_wpg3',  array(&$this,'media_upload_wpg3_form') );
 
    /* Options */
    $this_module = array(
@@ -76,6 +76,8 @@ public function admin_init()
 /**
   *   Add gallery3 Media Tab
   *
+  *   @param array Tabs
+  *   @return array Tabs
  **/
 public function imagechoser_tab($x){
 	$x['wpg3'] = __('Gallery3');
@@ -85,14 +87,18 @@ public function imagechoser_tab($x){
 /**
  *  Gallery3 Media Library Form
  * 
+ *  display the wpg3Picker or handle insert-image actions 
 **/
-public function imagechoser_media_browser($x){
+public function media_upload_wpg3_form($x){
+  
+  
+  echo "<pre>\n";
+  print_r ( $x );
+  echo "</pre>";
+  
+
 	$errors = array();
 	$id = 0;
-/* some stuff I didn't understand yet */
-	if ( !empty($_POST['insertonlybutton']) ) {
-    //echo '$_POST[ insertonlybutton ] = '.$_POST['html-upload']; 
-	}
 
 	if ( !empty($_POST) ) {
 		//$return = media_upload_form_handler();
@@ -112,7 +118,8 @@ public function imagechoser_media_browser($x){
 	if ( isset($_GET['tab']) && $_GET['tab'] == 'wpg3' )
 		return wp_iframe( array(&$this, 'media_upload_type_wpg3_form') , 'wpg3', $errors, $id );
 
-	return wp_iframe( 'media_upload_type_form', 'wpg3', $errors, $id );
+	//return wp_iframe( 'media_upload_type_form', 'wpg3', $errors, $id );
+	
 }
 
 
@@ -145,9 +152,14 @@ public function imagechoser_media_browser($x){
   echo '<div id="media-album-info">Can not load XHTTP</div>';
   echo '<div id="media-items"></div>';
   
-  // preload
+  // preload the loading Image
   echo '<img src="'.$plugin_dir_url.'images/ajax-loading.gif" alt=""  style="display: none;" />';
-  
+  echo '<img src="'.$plugin_dir_url.'images/insert.png" alt=""  style="display: none;" />';
+  echo '<img src="'.$plugin_dir_url.'images/insert_bw.png" alt=""  style="display: none;" />';
+  echo '<img src="'.$plugin_dir_url.'images/go_up.png" alt=""  style="display: none;" />';
+  echo '<img src="'.$plugin_dir_url.'images/goto.png" alt=""  style="display: none;" />';
+
+
   // add javascript
   echo '<script src="'.$plugin_dir_url.'js/media-upload-form.js" type="text/javascript"></script>';
   
@@ -157,7 +169,8 @@ public function imagechoser_media_browser($x){
                        'wpg3_date_format' => $wpg3_date_format,
                        'album_icon'       => $plugin_dir_url . 'images/ico-album.png',
                        'url'              => $this->wpg3_options['g3Url']. '/rest/item/',
-                       'image_dir_uri'         => $plugin_dir_url . 'images/',
+                       'image_dir_uri'    => $plugin_dir_url . 'images/',
+                       'g3Resize'         => $this->wpg3_options['g3Resize']
                     );
 
   if (isset($this->wpg3_options['restReqestKey'])){
@@ -174,7 +187,7 @@ public function imagechoser_media_browser($x){
   $template = $wpg3->get_module_instance('WPG3_Template');
   $types = array ('album', 'photo');
   foreach ( $types as &$type ){
-    $js_options['templates'][$type] =  $template->get_templates( $type );
+    $js_options['templates'][$type] =  $template->get_templates( $type );    
   }
  
   
@@ -185,16 +198,7 @@ public function imagechoser_media_browser($x){
   echo "
   <script type='text/javascript'>
   //<![CDATA[
-  
     var imagechoser_options = ".json_encode ( $js_options )."
-  
-     var imagchoser_json = ".json_encode ( $js_options )."
-     var wpg3_date_format = '" . $wpg3_date_format . "';
-     var image_dir_uri =  '" . $plugin_dir_url . "images/';
-     var album_icon =  '" . $plugin_dir_url . "images/ico-album.png';
-
-     var url = '" .$this->wpg3_options['g3Url']. "/rest/item/';
-     
   //]]>
   </script>";
   
@@ -218,6 +222,7 @@ public function imagechoser_media_browser($x){
   echo '<p class="savebutton wpg3-submit">';
   echo '<input disabled="disabled" type="submit" class="button" name="save" value="Save all changes" />';
   echo '</p>';
+  echo '<input type="hidden" name="" id="" />';
   echo '</form>';  
   
   }
