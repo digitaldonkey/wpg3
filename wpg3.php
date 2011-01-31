@@ -4,7 +4,7 @@
   Plugin URI: http://wpg3.digitaldonkey.de
   Description: Sucessor of the WPG2 Plugin Compatible to Gallery3 and WP3+ @ ALPHA-DEV
   Author URI: http://donkeymedia.eu
-  Version: 0.85
+  Version: 0.86
 */
 /**
   *   WPG3 Main

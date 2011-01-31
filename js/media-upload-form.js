@@ -73,7 +73,27 @@ jQuery(document).ready(function() {
  /* send action */
  jQuery('.send_button').live('click', function(e){
     var item = jQuery(this).attr('id');
-     alert ( item );
+    //alert ('halloEditor: : '+item );
+    
+    /* WHICH VERSION html or tag?? */
+    // in der HTML Ansicht ok. Bei WYSIWYG-muss nochmal umgeschaltet werden, bevor alles richtig angezeigt wird
+    
+    
+    if (parent.tinyMCE.activeEditor != null && parent.tinyMCE.activeEditor.isHidden() == false) {
+    
+      // Run this TinyMCE function 
+      // alert('WYSIWYG mode');
+      
+      
+    } else {
+    
+      // Use your custom Javascript to manipulate text within the HTML editor
+      //alert('HTML mode');
+    
+    
+    }
+
+    parent.send_to_editor('<WPG3>'+item+'</WPG3>');	
     return false;
   });
   
@@ -317,6 +337,45 @@ function wpg3_view_templateSelector( templates, item ){
 
   return jQuery(block);
 }
+
+
+
+/**
+ *    send html to the post editor from media-upload.dev.js
+ *
+**/
+/*
+function send_to_editor(h) {
+	var ed;
+
+	if ( typeof tinyMCE != 'undefined' && ( ed = tinyMCE.activeEditor ) && !ed.isHidden() ) {
+		ed.focus();
+		if ( tinymce.isIE )
+			ed.selection.moveToBookmark(tinymce.EditorManager.activeEditor.windowManager.bookmark);
+
+		if ( h.indexOf('[caption') === 0 ) {
+			if ( ed.plugins.wpeditimage )
+				h = ed.plugins.wpeditimage._do_shcode(h);
+		} else if ( h.indexOf('[gallery') === 0 ) {
+			if ( ed.plugins.wpgallery )
+				h = ed.plugins.wpgallery._do_gallery(h);
+		} else if ( h.indexOf('[embed') === 0 ) {
+			if ( ed.plugins.wordpress )
+				h = ed.plugins.wordpress._setEmbed(h);
+		}
+
+		ed.execCommand('mceInsertContent', false, h);
+
+	} else if ( typeof edInsertContent == 'function' ) {
+		edInsertContent(edCanvas, h);
+	} else {
+		jQuery( edCanvas ).val( jQuery( edCanvas ).val() + h );
+	}
+
+	tb_remove();
+}
+*/
+
 
 
 

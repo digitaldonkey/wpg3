@@ -43,12 +43,16 @@ Add &lt;WPG3&gt;item/1&lt;/WPG3&gt; to the body of the post/page in the editors 
 2. Gallery3 Options
 
 == Changelog ==
+= 0.86 =
+Implementing g3Image-choser
 = 0.85 =
 Integrated Gallery3 Page with Rewrite Suppport (make sure Rewrites are enabled)
 = 0.82 =
 WPG3-Tag support. Compatible to WPG2-Tags
 
 == Upgrade Notice ==
+= 0.86 =
+Implementing g3Image-choser
 = 0.85 =
 We're getting closer. Please give me some feedback!
 = 0.82 =

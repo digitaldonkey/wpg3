@@ -233,9 +233,14 @@ class WPG3_Xhttp{
       //echo '<div style="width: 40px; height:10px; background:red;">get XML</div>';
      
       $this_req = $this->cache['WP_Http']->request( $uri, $this->get_rest_header('GET', $this->wpg3_options['restReqestKey']) );
-      if ( $this_req['response']['code'] != 200 ){
+
+      if (! is_wp_error($this_req) or $this_req['response']['code'] != 200 ){
         // echo "Couldn't connect by Rest @ getObject<br /><pre>".print_r($this_req, true)."</pre>";
         $return = array(false, $this_req['response']);
+      }else{
+      
+        wp_die( $this_req->get_error_message() );
+      
       }
       
       $this->cache['items'][$uri] = json_decode($this_req['body']);
