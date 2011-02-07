@@ -70,51 +70,143 @@ jQuery(document).ready(function() {
     return false;
   });
  
- /* send action */
+ 
+ 
+ /* send action hereweare */
  jQuery('.send_button').live('click', function(e){
     var item = jQuery(this).attr('id');
+    
+    /*
+      get Data : ITEM_iD, Width, Template, features (not hidden)
+    */
+    
+    // WHICH ITEM is submitted?
     //alert ('halloEditor: : '+item );
     
-    /* WHICH VERSION html or tag?? */
-    // in der HTML Ansicht ok. Bei WYSIWYG-muss nochmal umgeschaltet werden, bevor alles richtig angezeigt wird
+    // WHICH TEMPLATE is used?
+    var templateInUse = jQuery('#g3-edit-item-'+item+' .templateSelector select').val();
+    //alert ( templateInUse );
+
+    // WHICH FEATURES is determined by visibility and 
+    //  the rel-attributes (which represent the fields we'll try to get a val from)
     
+    var featureData = '';
+
+    jQuery('#g3-edit-item-'+item+' .feature:visible').
+    each(function(){
+
+
+/**
+ *  @internal
+ *
+ *  <WPG3>ID|width|template|FEATURES asoz.Array (json,base64)</WPG3>
+ *  
+ *  radio Size --> Tag-Value
+ *  Custom width AND CSS-Width --> Tag-Value
+ *    --> if a custom Width is set the int-Val is used in the <WPG3>-tag
+ *
+ *  text Link URL --> feature Value
+ *  radio Alignment --> feature Value
+ *  
+**/
+      
+      var field = jQuery(this).attr('rel');
+      if (typeof field != null){
+        featureData += field + ' ';
+      }
+    });
     
+    // Now ALL fields are here
+    
+    // DEFAULTS
+    var mySize = "thumb";
+    
+    // START FEATURES Array-HANDLING
+    var features = '{';
+    var features_enc = ''; // asoz.Array jsonEnc, Base64Enc to be stored within the <WPG3>-Tag
+    
+    jQuery( featureData.trim().split(' ') ).each(function( index, val ){
+
+      var myField = jQuery('#g3-edit-item-'+item+' input[name='+ val +']');
+      var process = true;
+
+      // WIDTH costom OR Thumb Size
+      if ( val == 'custom-resize' || val == 'size'){
+
+        if ( myField.filter(':checked').val() != null ){
+          mySize =  myField.filter(':checked').val();
+        }        
+        if ( jQuery('#custom-resize-'+item ).val().trim() != ''){
+          mySize =  jQuery('#custom-resize-'+item ).val();
+        }
+        process =  false; // prevent future processing!
+      }
+      
+      // The Option-NAME will be the key Array-Key
+      if (process && myField.attr('type') == 'text' && myField.val().trim() != ''){
+        //alert( 'Defined Val for Textfield: '+ myField.val() );
+        features += '"'+ val +'":"' + myField.val() + '",';
+        
+      }
+      if (process && myField.attr('type') == 'radio' && myField.filter(':checked').val() != null){
+        //alert( 'RADIO: ' + myField.filter(':checked').val() );
+        features += '"'+ val +'":"' + myField.filter(':checked').val() + '",';
+      }
+      
+      // <WPG3>ID|width|template|FEATURES (json,base64)</WPG3>
+    });
+    
+    // finish json
+    features = features.substr(0, features.length -1)+'}';
+    if ( features != '}' ){
+      features_enc = '|' + Base64.encode(features);
+    }
+    // END FEATURES HANDLING
+
+
+    var myTag = '<WPG3>'+ item + '|' + mySize + '|' + templateInUse + features_enc + '</WPG3>';
+    //alert (myTag);
+
+    // WYSISWYG/HTML ?
+    
+    // if the editor is in WYSIWYG mode we ned to pharse first
     if (parent.tinyMCE.activeEditor != null && parent.tinyMCE.activeEditor.isHidden() == false) {
     
       // Run this TinyMCE function 
-      // alert('WYSIWYG mode');
-      
+      //alert('WYSIWYG mode');
+      parent.send_to_editor(myTag);	
       
     } else {
     
       // Use your custom Javascript to manipulate text within the HTML editor
       //alert('HTML mode');
-    
-    
-    }
+      parent.send_to_editor(myTag);	
 
-    parent.send_to_editor('<WPG3>'+item+'</WPG3>');	
+    }
+    
     return false;
   });
   
+  
  /* toggle available template Features */
  jQuery('.templateSelector').live('change', function(e){
+
+    // @todo  what about e.target??
     var item_id = jQuery(this).parent('.item_block').attr('id').substr('g3-edit-item-'.length);
     var item_type = jQuery(this).parent('.item_block').attr('rel');
     var template_id = jQuery( '#templateSelector-'+item_id).val();
     var templates = eval ('imagechoser_options.templates.'+item_type+'.'+template_id);
 
-
     jQuery('#g3-edit-item-'+item_id+' .feature').addClass('hidden');
-   if (templates.features ){
-      jQuery.each(templates.features, function(){
-        var this_feature = jQuery('#g3-edit-item-'+item_id).children('.feature-'+this);
-        // only till we implement them all ..
-        if (this_feature.length){
-          this_feature.removeClass('hidden');
-        }
-      });
-   }
+     if (templates.features ){
+        jQuery.each(templates.features, function(){
+          var this_feature = jQuery('#g3-edit-item-'+item_id).children('.feature-'+this);
+          // only till we implement them all ..
+          if (this_feature.length){
+            this_feature.removeClass('hidden');
+          }
+        });
+     }
    
      //alert (imagechoser_options.g3Resize.max_thumb);
      //alert (imagechoser_options.g3Resize.max_resize);
@@ -122,6 +214,21 @@ jQuery(document).ready(function() {
    
     return false;
   });
+  
+  
+ /* Select a Tumb-Size OR a Custom Width */
+ jQuery('.feature-size input').live('change', function(e){
+    
+    var myTarget = jQuery( e.target );
+    
+    if (myTarget.attr('name') == 'size' ){
+      myTarget.siblings('input:[name="custom-resize"]').val('');    
+    }
+    if (myTarget.filter('.custom-resize').val() != null && myTarget.filter('.custom-resize').val().trim() ){
+      myTarget.siblings('input:[name="size"]').attr('checked', false);
+    }    
+    return false;
+ });
   
   
   
@@ -192,7 +299,7 @@ function image_edit_block( item ){
 
 
 
-  + '<div class="feature feature-link hidden">'
+  + '<div class="feature feature-link hidden" rel="pickerUrl">'
   + '<p class="label">Link URL<\/p>'
   +  '<div style="margin-left: 150px;">'
   + '<input type="text" class="text urlfield" style="width: auto;" size="50" name="pickerUrl" id="pickerUrl" value="" /><br />'
@@ -204,21 +311,21 @@ function image_edit_block( item ){
   + '<\/div>'
 
 
-  + '<div class="feature feature-align hidden">'
+  + '<div class="feature feature-align hidden" rel="align">'
   + '<p class="label">Alignment<\/p>'
-  + '<input type="radio" name="align" class="image-align-none" value="alignnone" checked="checked" /><label for="image-align-none" class="align image-align-none-label">None</label>'
-  + '<input type="radio" name="align" class="image-align-left" value="alignleft" /><label for="image-align-left" class="align image-align-left-label">Left</label>'
-  + '<input type="radio" name="align" class="image-align-center" value="aligncenter" /><label for="image-align-center" class="align image-align-center-label">Center</label>'
-  + '<input type="radio" name="align" class="image-align-right" value="alignright" /><label for="image-align-right" class="align image-align-right-label">Right</label>'
+  + '<input type="radio" name="align" id="image-align-none' + item.entity.id + '" value="alignnone" checked="checked" /><label for="image-align-none' + item.entity.id + '" class="align image-align-none-label">None</label>'
+  + '<input type="radio" name="align" id="image-align-left' + item.entity.id + '" value="alignleft" /><label for="image-align-left' + item.entity.id + '" class="align image-align-left-label">Left</label>'
+  + '<input type="radio" name="align" id="image-align-center' + item.entity.id + '" value="aligncenter" /><label for="image-align-center' + item.entity.id + '" class="align image-align-center-label">Center</label>'
+  + '<input type="radio" name="align" id="image-align-right' + item.entity.id + '" value="alignright" /><label for="image-align-right' + item.entity.id + '" class="align image-align-right-label">Right</label>'
   + '<\/div>'
 
-  + '<div class="feature feature-size hidden">'
+  + '<div id="feature-size-' + item.entity.id + '" class="feature feature-size hidden" rel="size custom-resize">'
   + '<p class="label">Size<\/p>'
   + '<input name="size" id="image-size-thumb-' + item.entity.id + '" checked="checked" value="thumb" type="radio"><label for="image-size-thumb-' + item.entity.id + '">Thumbnail <\/label> <label for="image-size-thumb-' + item.entity.id + '" class="help">(' + item.entity.thumb_width + 'px)<\/label>'
   + '<input name="size" id="image-size-resize-' + item.entity.id + '" value="resize" type="radio"><label for="image-size-resize-' + item.entity.id + '">Medium<\/label> <label for="image-size-resize-' + item.entity.id + '" class="help">(' + item.entity.resize_width + 'px)<\/label>'
   + '<input name="size" id="image-size-full-' + item.entity.id + '" value="full" type="radio"><label for="image-size-full-' + item.entity.id + '">Full Size<\/label> <label for="image-size-full-' + item.entity.id + '" class="help">(' + item.entity.width + 'px)<\/label>'
   + '<br \/>'
-  + 'Custom width <input type="text" class="custom-resize" style="width: auto;" size="4" name="custom-resize" id="custom-resize" value="" />px'
+  + 'Custom width <input type="text" class="custom-resize" id="custom-resize-' + item.entity.id + '" class="custom-resize" style="width: auto;" size="4" name="custom-resize" value="" />px'
   + '<\/div>'
 
   +  wpg3_view_templateSelector( imagechoser_options.templates , item )
@@ -240,13 +347,8 @@ function image_edit_block( item ){
  **/
  function wpg3_edit_fields_block( item ){
   var html = '<div class="edit_fields_block">'
-  
-  
- 
- 
- 
-  + '<\/div>';
-  
+           + '<\/div>';
+
   return html;
  }
 
@@ -281,6 +383,9 @@ function image_edit_block( item ){
 function wpg3_view_templateSelector( templates, item ){
     
    var availableTemplates = eval ('templates.'+item.entity.type);
+
+   //console.dir(availableTemplates);
+  
 
    var html = '<div class="templateSelector">'
             + '<p class="label">Select a Template<\/p>'
@@ -339,44 +444,148 @@ function wpg3_view_templateSelector( templates, item ){
 }
 
 
-
-/**
- *    send html to the post editor from media-upload.dev.js
- *
-**/
-/*
-function send_to_editor(h) {
-	var ed;
-
-	if ( typeof tinyMCE != 'undefined' && ( ed = tinyMCE.activeEditor ) && !ed.isHidden() ) {
-		ed.focus();
-		if ( tinymce.isIE )
-			ed.selection.moveToBookmark(tinymce.EditorManager.activeEditor.windowManager.bookmark);
-
-		if ( h.indexOf('[caption') === 0 ) {
-			if ( ed.plugins.wpeditimage )
-				h = ed.plugins.wpeditimage._do_shcode(h);
-		} else if ( h.indexOf('[gallery') === 0 ) {
-			if ( ed.plugins.wpgallery )
-				h = ed.plugins.wpgallery._do_gallery(h);
-		} else if ( h.indexOf('[embed') === 0 ) {
-			if ( ed.plugins.wordpress )
-				h = ed.plugins.wordpress._setEmbed(h);
+ /**
+  *
+  *  Base64 encode / decode
+  *  http://www.webtoolkit.info/
+  *
+ **/
+ 
+var Base64 = {
+ 
+	// private property
+	_keyStr : "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=",
+ 
+	// public method for encoding
+	encode : function (input) {
+		var output = "";
+		var chr1, chr2, chr3, enc1, enc2, enc3, enc4;
+		var i = 0;
+ 
+		input = Base64._utf8_encode(input);
+ 
+		while (i < input.length) {
+ 
+			chr1 = input.charCodeAt(i++);
+			chr2 = input.charCodeAt(i++);
+			chr3 = input.charCodeAt(i++);
+ 
+			enc1 = chr1 >> 2;
+			enc2 = ((chr1 & 3) << 4) | (chr2 >> 4);
+			enc3 = ((chr2 & 15) << 2) | (chr3 >> 6);
+			enc4 = chr3 & 63;
+ 
+			if (isNaN(chr2)) {
+				enc3 = enc4 = 64;
+			} else if (isNaN(chr3)) {
+				enc4 = 64;
+			}
+ 
+			output = output +
+			this._keyStr.charAt(enc1) + this._keyStr.charAt(enc2) +
+			this._keyStr.charAt(enc3) + this._keyStr.charAt(enc4);
+ 
 		}
-
-		ed.execCommand('mceInsertContent', false, h);
-
-	} else if ( typeof edInsertContent == 'function' ) {
-		edInsertContent(edCanvas, h);
-	} else {
-		jQuery( edCanvas ).val( jQuery( edCanvas ).val() + h );
+ 
+		return output;
+	},
+ 
+	// public method for decoding
+	decode : function (input) {
+		var output = "";
+		var chr1, chr2, chr3;
+		var enc1, enc2, enc3, enc4;
+		var i = 0;
+ 
+		input = input.replace(/[^A-Za-z0-9\+\/\=]/g, "");
+ 
+		while (i < input.length) {
+ 
+			enc1 = this._keyStr.indexOf(input.charAt(i++));
+			enc2 = this._keyStr.indexOf(input.charAt(i++));
+			enc3 = this._keyStr.indexOf(input.charAt(i++));
+			enc4 = this._keyStr.indexOf(input.charAt(i++));
+ 
+			chr1 = (enc1 << 2) | (enc2 >> 4);
+			chr2 = ((enc2 & 15) << 4) | (enc3 >> 2);
+			chr3 = ((enc3 & 3) << 6) | enc4;
+ 
+			output = output + String.fromCharCode(chr1);
+ 
+			if (enc3 != 64) {
+				output = output + String.fromCharCode(chr2);
+			}
+			if (enc4 != 64) {
+				output = output + String.fromCharCode(chr3);
+			}
+ 
+		}
+ 
+		output = Base64._utf8_decode(output);
+ 
+		return output;
+ 
+	},
+ 
+	// private method for UTF-8 encoding
+	_utf8_encode : function (string) {
+		string = string.replace(/\r\n/g,"\n");
+		var utftext = "";
+ 
+		for (var n = 0; n < string.length; n++) {
+ 
+			var c = string.charCodeAt(n);
+ 
+			if (c < 128) {
+				utftext += String.fromCharCode(c);
+			}
+			else if((c > 127) && (c < 2048)) {
+				utftext += String.fromCharCode((c >> 6) | 192);
+				utftext += String.fromCharCode((c & 63) | 128);
+			}
+			else {
+				utftext += String.fromCharCode((c >> 12) | 224);
+				utftext += String.fromCharCode(((c >> 6) & 63) | 128);
+				utftext += String.fromCharCode((c & 63) | 128);
+			}
+ 
+		}
+ 
+		return utftext;
+	},
+ 
+	// private method for UTF-8 decoding
+	_utf8_decode : function (utftext) {
+		var string = "";
+		var i = 0;
+		var c = c1 = c2 = 0;
+ 
+		while ( i < utftext.length ) {
+ 
+			c = utftext.charCodeAt(i);
+ 
+			if (c < 128) {
+				string += String.fromCharCode(c);
+				i++;
+			}
+			else if((c > 191) && (c < 224)) {
+				c2 = utftext.charCodeAt(i+1);
+				string += String.fromCharCode(((c & 31) << 6) | (c2 & 63));
+				i += 2;
+			}
+			else {
+				c2 = utftext.charCodeAt(i+1);
+				c3 = utftext.charCodeAt(i+2);
+				string += String.fromCharCode(((c & 15) << 12) | ((c2 & 63) << 6) | (c3 & 63));
+				i += 3;
+			}
+ 
+		}
+ 
+		return string;
 	}
-
-	tb_remove();
+ 
 }
-*/
-
-
 
 
 /**

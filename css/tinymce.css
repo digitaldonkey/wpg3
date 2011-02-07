@@ -1,0 +1,20 @@
+textarea {
+  overflow: scroll;
+}
+span[mce_name="wpg3"], span[mce_name="wpg2"], span[mce_name="wpg2id"] {
+  display: block;
+  background-color:#EEEEEE;
+  border:1px solid #CCCCCC;
+  height: 150px;
+  width: 250px;
+  float: left;
+  margin: 10px;
+}
+img{
+  display: block;
+  background-color:#EEEEEE;
+  border:1px solid #CCCCCC;
+  float: left;
+  margin: 10px;
+
+}

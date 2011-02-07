@@ -31,7 +31,6 @@ class WPG3_Imagechoser
 public function main_init()
 {
 
-
 }
 
 
@@ -41,11 +40,26 @@ public function main_init()
 **/
 public function admin_init()
 {
-    /* Add gallery3 Tab to Media Library */
-    add_action('media_upload_tabs', array(&$this, 'imagechoser_tab') );
     
-    /* Add gallery3 Media Library Form */
-    add_action   ('media_upload_wpg3',  array(&$this,'media_upload_wpg3_form') );
+    /* MODULE ENABLED */
+    if ( isset($this->wpg3_options['g3ImageEnable']) and $this->wpg3_options['g3ImageEnable'] == "TRUE"){ 
+
+      /* Add gallery3 Tab to Media Library */
+      add_action('media_upload_tabs', array(&$this, 'imagechoser_tab') );
+      
+      /* Add gallery3 Media Library Form */
+      add_action   ('media_upload_wpg3',  array(&$this,'media_upload_wpg3_form') );
+
+      /* Enable TinyMce Plugin  */
+      add_filter("mce_external_plugins", array(&$this,'g3image_tinyMce_plugin') );
+
+      /* Extend TinyMce with WPGX-Tags  */
+      add_filter('tiny_mce_before_init', array(&$this,'change_mce_options') );
+
+      /* Add custom CSS to TinyMce Textarea  */
+      add_filter( 'mce_css', array(&$this,'g3Image_tinyMce_css') );
+    }
+
 
    /* Options */
    $this_module = array(
@@ -59,13 +73,13 @@ public function admin_init()
               'settings_fields' => array(
                                       array(
                                       // unique ID
-                                      'field_id' => '', 
+                                      'field_id' => 'g3ImageEnable', 
                                       // field TITLE text
-                                      'field_title' => __(''), 
+                                      'field_title' => __('Enable Image Choser'), 
                                       // function CALLBACK, to display the input box
-                                      'field_display' => array( $this , 'admin_options_section_display_'), 
+                                      'field_display' => array( $this , 'admin_options_section_display_g3ImageEnable'), 
                                       // function CALLBACK validate field
-                                      'field_validate' => array( $this , 'admin_options_section_validate_')
+                                      'field_validate' => array( $this , 'admin_options_section_validate_g3ImageEnable')
                                      ),
                                   )
         );
@@ -227,6 +241,42 @@ public function media_upload_wpg3_form($x){
   
   }
 
+
+
+
+ /**
+  * Adds g2image to the TinyMCE plugins list
+  *
+  * @param string $plugins the buttons string from the WP filter
+  * @return string the appended plugins string
+  *
+ **/
+  public function g3image_tinyMce_plugin($plugin_array)
+  {
+     
+     $plugin_array['Wpg3Tags'] = plugin_dir_path(__FILE__).'js/wpg3_editor_plugin.js';
+     return $plugin_array;
+  }
+
+/**
+ *    add custom Tags WPG3, WPG2 
+**/
+  public function change_mce_options( $init )
+  {
+   $init['extended_valid_elements'] = 'wpg2,wpg3,wpg2id';
+   $init['custom_elements'] = '~wpg2,~wpg3,~wpg2id';
+   return $init;
+  }
+
+/**
+ *    add custom CSS 
+**/
+  public function g3Image_tinyMce_css($return) {
+      $return .= ',' . plugin_dir_path(__FILE__).'css/tinymce.css';
+      return $return;
+  }
+
+
   
 /**
  *  Section Header for Options Page
@@ -237,7 +287,7 @@ public function media_upload_wpg3_form($x){
     echo '
     <div style="width: 600px; margin-left: 10px;">
       <p>
-         No Image Choser Options yet
+         The Image-Chooser enables an additional Tab ti insert Images located next to the Media library.
       </p>
    </div>';
 }
@@ -245,42 +295,31 @@ public function media_upload_wpg3_form($x){
 /**
  *  Options Page Output for "templateDirectory"
 **/
-  public function admin_options_section_display_()
-  { $field_id = '';
-    $options = $this->wpg3_options; 
-    $val = isset($options[$field_id])?$options[$field_id]: '';
-    //echo '<p>Absolute path to template directory. Leave empty to disable.<br />e.g. <strong>'.ABSPATH.'wp-content/wpg3-templates/</strong></p>';
-    //echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="60" type="text" value="'.$val.'" />'."\n";  
+  public function admin_options_section_display_g3ImageEnable()
+  { $field_id = 'g3ImageEnable';
+    $options = $this->wpg3_options;
+    
+    if (! isset( $options[$field_id] ) or  $options[$field_id] == 'FALSE' ){
+      $checked = '';
+      $val = 'FALSE';
+    }
+    if (isset( $options[$field_id] ) and  $options[$field_id] == 'TRUE'){
+      $checked = 'checked="checked"';
+      $val = 'TRUE';
+    }    
+    echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" type="hidden" value="'.$val.'" />'."\n";  
+    echo '<input '.$checked.'  id="'.$field_id.'_checkbox" name="wpg3_options['.$field_id.']"  type="checkbox" />'."\n";  
   }
 
-  /**
+/**
  *  Options Page Validation for "templateDirectory"
 **/
-  public function admin_options_section_validate_($field_val)
+  public function admin_options_section_validate_g3ImageEnable($field_val)
   { 
-    $return = false;
-    $field_val = trim($field_val);
-    // validate input
-    if ( $field_val == '' ){
-     $return = ' '; //blank, not empty or you'll get trouble emptying the value!
+    $return = 'FALSE';
+    if ( $field_val == 'on' ){
+      $return = 'TRUE';
     }
-    /*
-    else{
-      if( substr( $field_val, -1 ) != "/" ) $field_val = $field_val."/";
-      if ( is_dir( $field_val ) and is_readable( $field_val ) ){
-          $return = $field_val;
-      }else{
-        // create a nice Error including you field_id
-        add_settings_error(
-            'templateDirectory', 
-            'settings_updated', 
-            'Enter a existing and readable Template Directory Path
-             @ templateDirectory<br />Path must be absolute and readable.
-             <br /> You entered: "'.$field_val.'"'
-        );
-      }
-    }
-    */
     return $return;
   }
 

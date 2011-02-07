@@ -11,7 +11,7 @@
   *
   *   @link http://wpg3.digitaldonkey.de
   *   @author Thorsten Krug <driver@digitaldonkey.de>
-  *   @version 0.82
+  *   @version 0.86
   *   @filesource
   *   @package WPG3
  **/
@@ -231,6 +231,9 @@ public function wpg3_content($g3_tag=false)
      *  $g3_tag[1] => int.id|str.rel.path|str.REST.path
      *  $g3_tag[2] => int.width|str.width
      *  $g3_tag[3] => str.template.id
+     *  $g3_tag[4] => str.features base64enc( jsonEnc(array) )
+
+
     **/
 
   // Debug REST $url
@@ -301,11 +304,13 @@ public function wpg3_content($g3_tag=false)
       }
     }
     // check for  json.features
-    if ( isset($g3_tag[4]) and is_string($g3_tag[4]) ){   
+    if ( isset($g3_tag[4]) and strlen(trim($g3_tag[4])) and is_string($g3_tag[4]) ){   
       
       
-      $decoded_array = json_decode(base64_decode( $g3_tag[4] ));
-      echo "<pre>\$decoded_array\n";
+      //$decoded_array = json_decode(base64_decode( $g3_tag[4] ));
+      $decoded_array = base64_decode( $g3_tag[4] );
+      
+      echo "<pre>?? \$decoded_array\n";
       print_r ( $decoded_array );
       echo "</pre>";
       

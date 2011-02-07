@@ -289,7 +289,7 @@ private function getAllFiles($directory, $recursive = true) {
     $templates = array();
           
     /* makes sure that there is a  wpg3_templates directory */
-    if ( isset( $this->wpg3_options['templateDirectory'] ) and !is_dir( $this->wpg3_options['templateDirectory'] ) ){
+    if ( isset( $this->wpg3_options['templateDirectory'] ) and trim( $this->wpg3_options['templateDirectory']  ) and !is_dir( $this->wpg3_options['templateDirectory'] ) ){
       if ( !mkdir( $this->wpg3_options['templateDirectory'] ) ){
        wp_die("Please create a Templet Direcoty: $this->wpg3_options['templateDirectory']<br />or chmod 777 the parent folder.");
       }
