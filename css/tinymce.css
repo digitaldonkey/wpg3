@@ -9,6 +9,9 @@ span[mce_name="wpg3"], span[mce_name="wpg2"], span[mce_name="wpg2id"] {
   width: 250px;
   float: left;
   margin: 10px;
+  overflow: hidden;
+  font-size: x-small;
+  color: red;
 }
 img{
   display: block;

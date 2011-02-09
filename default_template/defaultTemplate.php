@@ -81,12 +81,14 @@ class defaultTemplate
  *  @param object item 
  *  @param int Width. This is passed by the WPG3-Tag
 **/
-  public function full_photo($item, $width=false){
+  public function full_photo($item){
     $html ='<div class="gallery">';
     // $width = WPGX-Tag Width value or false if not set
     //$html .= $width;
     if ($this->show_available_data){
-      $html .= '<pre>ITEM:<br />'.print_r($item, true).'<br/>WIDTH:<br />'.print_r($width, true).'</pre>';
+      $html .= '<pre><strong>TEMPLATE: </strong><em>full_photo</em>'."\n"
+               .'<strong>ITEM: </strong>'."\n".print_r($item, true)."\n"
+               .'</pre>';
     }
     //
     if(isset($item->links->parents)){
@@ -112,21 +114,72 @@ class defaultTemplate
  *  @param object item 
  *  @param array extras (e.g. array('link' => 'http: //...', 'width' => int, 'align' => string )
 **/
-  public function inline_photo($item, $width=false){
-    $html ='<div class="gallery">';
-    // $width['width'] = WPGX-Tag Width value or false if not set
+  public function inline_photo($item, $features=false){
+    $html ='';
+    
+    // DEBUG output 
     if ($this->show_available_data){
-      $html .= '<pre>ITEM:<br />'.print_r($item, true).'<br/>WIDTH:<br />'.print_r($width, true).'</pre>';
-    }
-    //
-    if(isset($item->links->parents)){
-          $html .= $this->create_bradcrump($item->links->parents , $item->entity->title);
+      $html .= '<pre><strong>TEMPLATE: </strong><em>inline_photo</em>'."\n"
+               .'<strong>ITEM: </strong>'."\n".print_r($item, true)."\n"
+               .'</pre>';
     }
 
-    $html .="<h2>".$item->entity->title."</h2>";
-    $html .= "<a href='".$item->entity->file_url_public."'><img src='".$item->entity->resize_url_public."' /></a>";
-	  $html .=  $this->wpg3_view_get_desc($item);
-	  $html .=  "</div>";
+    /* chose size of the image (thumb, resize, full) */
+    $img_url = $item->entity->resize_url_public;
+    if (isset ($item->template_features->width) ){
+      if ( $item->template_features->width == "thumb"){
+        $img_url = $item->entity->thumb_url_public;
+      }
+      if ( $item->template_features->width == "full"){
+        $img_url = $item->entity->file_url_public;
+      }
+    }
+    
+    /* Handle width in px if not set */
+    if ( isset ($item->template_features->int_width) ){
+    
+      $width = $item->template_features->int_width;
+    
+    }else{
+
+      $width = $item->entity->resize_width;
+      $height = $item->entity->resize_height;
+      
+      if ( $item->template_features->width == "thumb"){
+        $width = $item->entity->thumb_width;
+        $height = $item->entity->thumb_height;
+      }
+
+      if ( $item->template_features->width == "full"){
+        $width = $item->entity->width;
+        $height = $item->entity->height;
+      }
+
+   }
+   
+   /* Handle if no Alignment was set */
+   $align = ''; //can be any CSS Class
+   if ( isset($item->template_features->align) ){
+      $align = $item->template_features->align;
+   }
+    
+   // HTML Template    
+    $html .='<figure style="width:'.$width.'px;" class="g3Image '.$align.'">';
+    
+      if ( isset($item->template_features->linkUrl) ){
+      $html .= '<a href="'.$item->template_features->linkUrl.'">';
+      }
+  
+      $html .= '<img style="width:'.$width.'px;" src="'.$img_url.'" />';
+  
+      if (isset($item->template_features->linkUrl)){
+      $html .= '</a>';
+      }
+
+    $html .= '<figcaption class="title">'.$item->entity->title."</figcaption>";
+
+	  //$html .=  $this->wpg3_view_get_desc($item);
+	  $html .=  "</figure>";
     return $html;
   }  
 
@@ -142,24 +195,76 @@ class defaultTemplate
  *  @param object item 
  *  @param array extras (e.g. array('link' => 'http: //...', 'width' => int, 'align' => string )
 **/
-  public function inline_album($item, $width=false){
-    $html ='<div class="gallery">';
-    // $width = WPGX-Tag Width value or false if not set
-    //$html .= $width;
+  public function inline_album($item, $features=false){
+    $html ='';
+    
+    // DEBUG output 
     if ($this->show_available_data){
-      $html .= '<pre>ITEM:<br />'.print_r($item, true).'<br/>WIDTH:<br />'.print_r($width, true).'</pre>';
+      $html .= '<pre><strong>TEMPLATE: </strong><em>inline_album</em>'."\n"
+               .'<strong>ITEM: </strong>'."\n".print_r($item, true)."\n"
+               .'</pre>';
     }
-    //
-    if(isset($item->links->parents)){
-          $html .= $this->create_bradcrump($item->links->parents , $item->entity->title);
+    
+    /* chose size of the image (thumb, resize, full) */
+    $img_url = $item->entity->thumb_url;
+
+    if ( $item->template_features->width == "resize"){
+      $img_url = $item->entity->album_cover->entity->thumb_url_public;
+    }
+    if ( $item->template_features->width == "full"){
+      $img_url = $item->entity->album_cover->entity->file_url_public;
+    }
+  
+  /* Handle width in px if not set */
+  if ( isset ($item->template_features->int_width) ){
+  
+    $width = $item->template_features->int_width;
+  
+  }else{
+
+    $width = $item->entity->thumb_width;
+    $height = $item->entity->thumb_height;
+    
+    if ( $item->template_features->width == "resize"){
+      $width = $item->entity->album_cover->entity->thumb_width;
+      $height = $item->entity->album_cover->entity->thumb_height;
     }
 
-    $html .="<h2>".$item->entity->title."</h2>";
-    $html .= "<a href='".$item->entity->file_url_public."'><img src='".$item->entity->resize_url_public."' /></a>";
-	  $html .=  $this->wpg3_view_get_desc($item);
-	  $html .=  "</div>";
+    if ( $item->template_features->width == "full"){
+      $width = $item->entity->album_cover->entity->width;
+      $height = $item->entity->album_cover->entity->height;
+    }
+
+ }
+   
+   /* Handle if no Alignment was set */
+   $align = ''; //can be any CSS Class
+   if ( isset($item->template_features->align) ){
+      $align = $item->template_features->align;
+   }
+    
+   // HTML Template    
+    $html .='<figure style="width:'.$width.'px;" class="g3Album '.$align.'">';
+    
+      if ( isset($item->template_features->linkUrl) ){
+      $html .= '<a href="'.$item->template_features->linkUrl.'">';
+      }
+  
+      $html .= '<img style="width:'.$width.'px;" src="'.$img_url.'" />';
+  
+      if (isset($item->template_features->linkUrl)){
+      $html .= '</a>';
+      }
+
+    $html .= '<figcaption class="title">'.$item->entity->title."</figcaption>";
+
+	  //$html .=  $this->wpg3_view_get_desc($item);
+	  $html .=  "</figure>";
     return $html;
   } 
+  
+  
+  
   
 /**
  *  Full Album Template 
@@ -175,7 +280,9 @@ class defaultTemplate
   public function full_album($items, $width=false){    
     $html ='<div class="gallery">';
     if ($this->show_available_data){
-      $html .= '<pre>ITEM:<br />'.print_r($items, true).'<br/>WIDTH:<br />'.print_r($width, true).'</pre>';
+      $html .= '<pre><strong>TEMPLATE: </strong><em>full_album</em>'."\n"
+               .'<strong>ITEM: </strong>'."\n".print_r($items, true)."\n"
+               .'</pre>';
     }
     if(isset($items->links->parents)){
           $html .= $this->create_bradcrump($items->links->parents, $items->entity->title);
@@ -194,6 +301,10 @@ class defaultTemplate
     
     return $html;
    }
+
+
+
+
 
   /* HELPER: get item as block (for the Album page) */
   private function view_itemBlock($item){
@@ -254,5 +365,25 @@ class defaultTemplate
 
   return $html;
   }
+  
+ private function arrayToObject($array) {
+    if(!is_array($array)) {
+        return $array;
+    }
+    
+    $object = new stdClass();
+    if (is_array($array) && count($array) > 0) {
+      foreach ($array as $name=>$value) {
+         $name = strtolower(trim($name));
+         if (!empty($name)) {
+            $object->$name = $this->arrayToObject($value);
+         }
+      }
+      return $object; 
+    }
+    else {
+      return FALSE;
+    }
+} 
 }
 ?>

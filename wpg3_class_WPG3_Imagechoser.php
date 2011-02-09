@@ -272,7 +272,7 @@ public function media_upload_wpg3_form($x){
  *    add custom CSS 
 **/
   public function g3Image_tinyMce_css($return) {
-      $return .= ',' . plugin_dir_path(__FILE__).'css/tinymce.css';
+      $return .= ',' . plugin_dir_url(__FILE__).'css/tinymce.css';
       return $return;
   }
 

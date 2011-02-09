@@ -130,6 +130,7 @@ jQuery(document).ready(function() {
       var myField = jQuery('#g3-edit-item-'+item+' input[name='+ val +']');
       var process = true;
 
+      // VALIFDATE FIELDS:
       // WIDTH costom OR Thumb Size
       if ( val == 'custom-resize' || val == 'size'){
 
@@ -139,6 +140,13 @@ jQuery(document).ready(function() {
         if ( jQuery('#custom-resize-'+item ).val().trim() != ''){
           mySize =  jQuery('#custom-resize-'+item ).val();
         }
+        process =  false; // prevent future processing!
+      }
+      
+      // @todo Vaid Url
+      if ( val == 'linkUrl' && myField.val().trim() != ''){
+        var myUrl = myField.val().trim();
+        features += '"'+ val +'":"' + myUrl + '",';
         process =  false; // prevent future processing!
       }
       
@@ -299,13 +307,13 @@ function image_edit_block( item ){
 
 
 
-  + '<div class="feature feature-link hidden" rel="pickerUrl">'
+  + '<div class="feature feature-link hidden" rel="linkUrl">'
   + '<p class="label">Link URL<\/p>'
   +  '<div style="margin-left: 150px;">'
-  + '<input type="text" class="text urlfield" style="width: auto;" size="50" name="pickerUrl" id="pickerUrl" value="" /><br />'
-  + '<button type="button" class="urlButtonEmpty" class="button urlnone" onclick="buttonToField(this,"pickerUrl");" title="">None</button>'
-  + '<button type="button" class="urlButtonGallery" class="button urlfile" onclick="buttonToField(this,"pickerUrl");" title="">Gallery page</button>'
-  + '<button type="button" class="urlButtonPost" class="button urlpost" onclick="buttonToField(this,"pickerUrl");" title="PERMALINK IF PAGE AVAILABLE">Image Url / Lightbox</button>'
+  + '<input type="text" class="text urlfield" style="width: auto;" size="50" name="linkUrl" id="linkUrl" value="" /><br />'
+  + '<button type="button" class="urlButtonEmpty" class="button urlnone" onclick="buttonToField(this,"linkUrl");" title="">None</button>'
+  + '<button type="button" class="urlButtonGallery" class="button urlfile" onclick="buttonToField(this,"linkUrl");" title="">Gallery page</button>'
+  + '<button type="button" class="urlButtonPost" class="button urlpost" onclick="buttonToField(this,"linkUrl");" title="PERMALINK IF PAGE AVAILABLE">Image Url / Lightbox</button>'
   + '<p class="help">Enter a link URL or click above for presets.</p>'
   + '<\/div>'
   + '<\/div>'

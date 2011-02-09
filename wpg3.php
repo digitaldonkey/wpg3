@@ -54,7 +54,7 @@ class WPG3_Main
     *  use: get_module($classname);
    **/
   private $modules;
-  private $debug = true;
+  private $debug = false;
   /**
    *   Load wpg3_options 
    *  
@@ -63,6 +63,7 @@ class WPG3_Main
     $wpg3_options = get_option('wpg3_options');
     if ( is_array($wpg3_options) ){
       $this->wpg3_options = $wpg3_options;
+      if ( $this->wpg3_options['g3debug'] == "TRUE" ) $this->debug = true;
       $this->is_enabled = true;
     }else{
       add_action('admin_notices', array( $this , 'no_settings_yet') );
@@ -143,13 +144,8 @@ class WPG3_Main
       }
     }  
   }
-
-
-private function clear_caches(){
-
   
-
-}
+  
 
 /**
  *  WPG3 post/page content
@@ -159,7 +155,8 @@ private function clear_caches(){
  *  @param [array] Optional array Item 
 **/
 public function wpg3_content($g3_tag=false)
-{ 
+{       
+    $html = '';     
     if($this->debug) $start = microtime(true);
 
  /**
@@ -169,7 +166,7 @@ public function wpg3_content($g3_tag=false)
  **/
   global $wp_query;
   if (isset($wp_query->post->ID)) $this->wpg3_options['scriptUrl'] = get_permalink( $wp_query->post->ID );
-  
+    
  /**
   *  current REST request Uri
   *
@@ -194,7 +191,7 @@ public function wpg3_content($g3_tag=false)
   }
   
   // Debug REST $url
-  if ($this->debug) echo '<pre style="padding: 5px;border: 1px dotted red;"><strong>REST request array:</strong><br />'.print_r( $get_item ,true).'</pre>';
+  if ($this->debug) $html .= '<pre style="padding: 5px;border: 1px dotted red;"><strong>REST request array:</strong><br />'.print_r( $get_item ,true).'</pre>';
 	
 	// Getting Items
 	$xhttp = $this->get_module_instance('WPG3_Xhttp');
@@ -203,11 +200,13 @@ public function wpg3_content($g3_tag=false)
 	$items = $xhttp->get_item( $get_item );
 
   $templates = $this->get_module_instance('WPG3_Template');
-  //echo $templates->debug_templates();
+  // $html .= $templates->debug_templates();
 
-  echo $templates->use_template( $get_item, $items );
+  $html .=  $templates->use_template( $get_item, $items );
 	
-  if($this->debug) echo '<div style="border: 1px dotted red;">WPG3 main script time: '.round( (microtime(true) - $start) , 4)." sec.</div>";
+  if($this->debug) $html .= '<div style="border: 1px dotted red;">WPG3 main script time: '.round( (microtime(true) - $start) , 4)." sec.</div>";
+  
+  return $html;
 }
 
  /**
@@ -218,6 +217,7 @@ public function wpg3_content($g3_tag=false)
  **/  
   private function check_wpg3_tag($g3_tag)
   { 
+    $html = '';
     $get_item = array('id' => false,
                     'rest_uri' => $this->wpg3_options['g3Url'].$this->wpg3_options['g3Home'],
                     'width' => false,
@@ -239,11 +239,11 @@ public function wpg3_content($g3_tag=false)
   // Debug REST $url
     // DEBUG
     if ($this->debug){
-      echo '<div style="padding: 5px;border: 1px dotted red;"><strong>&lt;WPGX&gt;'.$g3_tag[0].'&lt;/WPGX&gt;</strong>';
-      echo '<pre style="font-size: 12px;">'."\n";
-      echo '<wpg3> [int.id|str.rel.path|str.REST.path] [ | [int.width|str.width] ] [ | [str.template]</wpg3>';
-      echo "</pre>";
-      echo "</div>";
+      $html .= '<div style="padding: 5px;border: 1px dotted red;"><strong>&lt;WPGX&gt;'.$g3_tag[0].'&lt;/WPGX&gt;</strong>'
+            .  '<pre style="font-size: 12px;">'."\n"
+            .  '<wpg3> [int.id|str.rel.path|str.REST.path] [ | [int.width|str.width] ] [ | [str.template]</wpg3>'
+            .  "</pre>"
+            .  "</div>";
     }
     
     // check for int.id|str.rel.path|str.REST.path
@@ -297,7 +297,7 @@ public function wpg3_content($g3_tag=false)
     }
     
     // check for  str.template.id
-    if ( isset($g3_tag[3]) and is_string($g3_tag[3]) ){    
+    if ( isset($g3_tag[3]) and is_string($g3_tag[3]) ){
       $tpl = $this->get_module_instance('WPG3_Template');
       if (in_array ( $g3_tag[3] , $tpl->get_template_ids() , true ) ){
         $get_item['template'] = $g3_tag[3];
@@ -307,13 +307,8 @@ public function wpg3_content($g3_tag=false)
     if ( isset($g3_tag[4]) and strlen(trim($g3_tag[4])) and is_string($g3_tag[4]) ){   
       
       
-      //$decoded_array = json_decode(base64_decode( $g3_tag[4] ));
-      $decoded_array = base64_decode( $g3_tag[4] );
-      
-      echo "<pre>?? \$decoded_array\n";
-      print_r ( $decoded_array );
-      echo "</pre>";
-      
+      $decoded_array = json_decode(base64_decode( $g3_tag[4] ));
+      //$decoded_array = base64_decode( $g3_tag[4] );
       
       if ( $decoded_array != 'NULL' ){      
         $get_item['features'] = $decoded_array;
@@ -359,9 +354,8 @@ public function wpg3_content($g3_tag=false)
   public function wpg3_content_callback( $content , $templateTag=false) {
     $return = false;    
     /* Run the input check. */		
-      
-    /* Tag Tester */
     
+    /* Tag Tester */    
     if ( isset($_GET['tagtester']) ){
       $this->testTags();
       if ( isset($_POST['tags']) ){
@@ -370,24 +364,26 @@ public function wpg3_content($g3_tag=false)
         
       }
     }
-
+    
     if(false === stripos($content, '<wpg') and !$templateTag) {
       $return = $content;
     }else{
       // without features
       //$return = preg_replace_callback('/<wpg[23]>([^\|]*)[\|]?([^\|]*)[\|]?(.*)<\/wpg[23]>/i', array( $this, 'wpg3_content' ), $content );
       //with features ??
-      $return = preg_replace_callback('/<wpg[23]>([^\|]*)[\|]?([^\|]*)[\|]?([^\|]*)[\|]?(.*)<\/wpg[23]>/i', array( $this, 'wpg3_content' ), $content );
+      $return = preg_replace_callback('/<wpg[23]i?d?>([^\|]*)[\|]?([^\|]*)[\|]?([^\|]*)[\|]?(.*)<\/wpg[23]i?d?>/i', array( $this, 'wpg3_content' ), $content );
    }   
     return $return;
   }
+
+
 
   /**
    *  Admin Error Message: Missing Settings
    *  
   **/
   public function no_settings_yet(){
-     echo '<div class="error"><p>Please check WPG3 Options in in order to enable the Plugin.</p></div>';
+     $html .= '<div class="error"><p>Please check WPG3 Options in in order to enable the Plugin.</p></div>';
   }
 
 /**
@@ -446,6 +442,8 @@ public function wpg3_content($g3_tag=false)
     echo "</form>\n</div>\n";
   }
   
+  
+  
 /**
   *   Validate Option Fields
   *
@@ -464,6 +462,8 @@ public function wpg3_content($g3_tag=false)
    }
     return $wpg3_options;
   }		
+
+
 
 /**
  *  Every Module can provide its own Options or return "false"
@@ -498,11 +498,23 @@ public function wpg3_content($g3_tag=false)
                                         'field_display' => array( $this , 'admin_options_section_display_g3Resize'), 
                                         // function CALLBACK validate field
                                         'field_validate' => array( $this , 'admin_options_section_validate_g3Resize')
+                                       ),
+                                        array(
+                                        // unique ID
+                                        'field_id' => 'g3debug', 
+                                        // field TITLE text
+                                        'field_title' => __('Debug Mode'), 
+                                        // function CALLBACK, to display the input box
+                                        'field_display' => array( $this , 'admin_options_section_display_g3debug'), 
+                                        // function CALLBACK validate field
+                                        'field_validate' => array( $this , 'admin_options_section_validate_g3debug')
                                        )
+
                                )
           );
     return $main_mudule;
   }
+  
   
 /**
  *  Section Header for Options Page
@@ -591,6 +603,38 @@ public function wpg3_content($g3_tag=false)
     !$this->is_enabled ? $enabled = ' style="color: red;" ': $enabled ='';
     echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" '.$enabled.'size="60" type="text" value="'.$val.'" />'."\n";  
   }
+  
+/**
+ *  Options Page Output for "g3debug"
+ *
+**/
+  public function admin_options_section_display_g3debug()
+  { $field_id = 'g3debug';
+    $options = $this->wpg3_options;
+    if (! isset( $options[$field_id] ) or  $options[$field_id] == 'FALSE' ){
+      $checked = '';
+      $val = 'FALSE';
+    }
+    if (isset( $options[$field_id] ) and  $options[$field_id] == 'TRUE'){
+      $checked = 'checked="checked"';
+      $val = 'TRUE';
+    }    
+    echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" type="hidden" value="'.$val.'" />'."\n";  
+    echo '<input '.$checked.'  id="'.$field_id.'_checkbox" name="wpg3_options['.$field_id.']"  type="checkbox" />'."\n";  
+  }
+  
+/**
+ *  Validate field "g3debug"
+ *
+**/
+  public function admin_options_section_validate_g3debug($field_val)
+  {
+    $return = 'FALSE';
+    if ( $field_val == 'on' ){
+      $return = 'TRUE';
+    }
+    return $return;
+  }
 
 /**
  *  Validate field "restReqestKey"
@@ -640,7 +684,8 @@ public function wpg3_content($g3_tag=false)
     if (isset($this->wpg3_options[$type]) and $this->wpg3_options[$type] == "enabled") $return = true;
     return $return;
   }
-
+  
+  
 /**
  *  <WPG3>-Tag Tester
  *  Just for Debug
@@ -693,7 +738,6 @@ public function wpg3_content($g3_tag=false)
     echo '</form>'."\n";
   
   }
-  
 }// END class WPG3_Main
 
 	add_action('init', array(&$wpg3, 'wpg3_init') );

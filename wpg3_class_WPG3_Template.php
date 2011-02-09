@@ -75,13 +75,14 @@ class WPG3_Template{
     //  $get_item['template'] => valid Template ID or false
     $myTemplateId = false;
     $available_Templates = $this->get_templates( $data->entity->type );
-    if ( ! $get_item['template'] ){
+    if ( $get_item['template'] ){
       foreach ( $available_Templates as $tpl ){
         if ( $tpl['id'] == $get_item['template'] ){
           $myTemplateId = $tpl['id'];
         }
       }
     }
+
     // Default Template
     if ( ! $myTemplateId ){
       $supported_item_types = array( 'photo', 'album' );
@@ -111,8 +112,24 @@ class WPG3_Template{
     }
     // add Styles
     // we have to add the Scripts and CSS more early --> register_script_and_css ... that's bad :(
-    isset($get_item['int_width']) ? $width = $get_item['int_width'] : $width = false;
-    $html .= $obj->{$myTemplate['method']}($data, $width );
+    
+    // pass on width and features
+    if ( isset($get_item['int_width']) or isset($get_item['features']) or isset($get_item['width']) ){
+      $features = new stdClass;
+      
+      if ( isset($get_item['features']) ) $features = $get_item['features']; 
+      
+      if ( isset($get_item['width']) ){
+        $features->width = $get_item['width']; 
+      }
+      
+      if ( isset($get_item['int_width']) ){
+        $features->int_width= $get_item['int_width']; 
+      }
+      $data->template_features = $features;
+    }
+        
+    $html .= $obj->{$myTemplate['method']}( $data );
     
     if (empty($html)){
        $return = false;
@@ -290,9 +307,7 @@ private function getAllFiles($directory, $recursive = true) {
           
     /* makes sure that there is a  wpg3_templates directory */
     if ( isset( $this->wpg3_options['templateDirectory'] ) and trim( $this->wpg3_options['templateDirectory']  ) and !is_dir( $this->wpg3_options['templateDirectory'] ) ){
-      if ( !mkdir( $this->wpg3_options['templateDirectory'] ) ){
-       wp_die("Please create a Templet Direcoty: $this->wpg3_options['templateDirectory']<br />or chmod 777 the parent folder.");
-      }
+       wp_die("Please make sure the template Directory given in WPG3-Option ($this->wpg3_options['templateDirectory']) exists.");
     }
     $template_files  = $this->getAllFiles( plugin_dir_path(__FILE__).'default_template/');
     if ( isset($this->wpg3_options['templateDirectory']) and trim ( $this->wpg3_options['templateDirectory'] )  ){

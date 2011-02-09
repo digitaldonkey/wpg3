@@ -36,7 +36,7 @@ class WPG3_Xhttp{
     if (! is_array($wpg3_options)){
       wp_die('g3 Settings missing@WPG3_Xhttp --> __construct');
     }
-    $this->wpg3_options = $wpg3_options;
+    $this->wpg3_options = $wpg3_options;    
     
     /* check the cache */
     if (false === ( $this->cache = get_transient($this->wpg3_options['g3Url']) ) ) {
@@ -75,6 +75,7 @@ class WPG3_Xhttp{
 **/  
   public function get_item( $item = false ){
     $return = false;
+    
     // fallback: if we got a bad request
     if (! is_array( $item) ){
       echo "Something went wrong. I'll go 'home'";
@@ -101,7 +102,8 @@ class WPG3_Xhttp{
     if( isset($item['id']) and trim ($item['id'])){
       $return = $this->getItemWithChildren( $this->wpg3_options['g3Url'].'/rest/item/'.$item['id']);
     }    
-    if( isset($item['rest_uri']) ){
+    if( isset($item['rest_uri']) ){      
+      
       $count = strlen($this->wpg3_options['g3Url'].'/rest/item/');
       if ( substr($item['rest_uri'], 0, $count) === $this->wpg3_options['g3Url'].'/rest/item/' ){
         $return = $this->getItemWithChildren($item['rest_uri']);
@@ -177,6 +179,11 @@ class WPG3_Xhttp{
     $start = microtime(true);
     $return = clone $this->getObject($uri);
 
+  if (isset ($return->entity->album_cover) and is_string($return->entity->album_cover) and trim ($return->entity->album_cover) != '' ){
+    
+    $return->entity->album_cover = $this->get_item(array ('rest_uri' => $return->entity->album_cover ) );
+  }
+
   if( $slugs ){
   
     if ( ! empty($return->entity->parent) ){
@@ -189,8 +196,8 @@ class WPG3_Xhttp{
     if ( ! empty($return->members) ){
       $return->members = $this->getMultipleObjects($return->members, $slugs);
     }
-    
-  }else{
+        
+    }else{
     if ( ! empty($return->entity->parent) ){
       $return->links->parents = $this->getObjectParent($return->entity->parent);
       // script Url??
@@ -552,7 +559,8 @@ public function get_rest_header($method = "GET", $key = false ){
   private function getParents($item){
     $urls = array();
     do {
-      $url = $this->wpg3_options['scriptUrl']; 
+      $url = '';
+      isset($this->wpg3_options['scriptUrl'] )? $url .= $this->wpg3_options['scriptUrl'] : $url .=''; 
       if (! $item->entity->id == 0){
         $url .= "?itemid=".$item->entity->id;
       }
