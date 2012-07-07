@@ -1,6 +1,6 @@
 /* wpg3_default.js */
 //  alert ('wpg3_default.js');
-jQuery(document).ready(function() {
+jQuery(window).load(function() {
   
   var height = 0;
   var width = 0;
