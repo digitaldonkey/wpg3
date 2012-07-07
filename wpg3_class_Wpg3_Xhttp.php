@@ -396,7 +396,7 @@ public function get_rest_header($method = "GET", $key = false ){
     $val = isset($options[$field_id])? 'value="'.$options[$field_id].'"' : 'style="color: red;" value="/rest/item/1"';
     echo '<p>Default g3 Album/Item to display. e.g. <strong>/rest/item/1</strong></p>';
     echo '<input id="'.$field_id.'" name="wpg3_options['.$field_id.']" size="30" type="text" '.$val.' />'."\n";
-    echo '<p>This Item will be the root Album of your G3-Page.';
+    echo '<p>This Item will be you the root Album of you G3-Page.';
   }
 
 /**
