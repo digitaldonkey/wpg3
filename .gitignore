@@ -4,3 +4,4 @@
 /nbproject/project.xml
 .gitignore
 .DS_Store
+/.git-rewrite/
